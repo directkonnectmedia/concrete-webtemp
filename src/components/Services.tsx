@@ -139,41 +139,6 @@ export default function Services() {
             ))
           )}
         </div>
-
-        {/* Control joint lines at tile boundaries */}
-        <div className="absolute inset-0" aria-hidden="true">
-          {/* Vertical joints — between each of the 4 columns */}
-          {[25, 50, 75].map((pct) => (
-            <div
-              key={`v-${pct}`}
-              className="absolute top-0 bottom-0"
-              style={{
-                left: `${pct}%`,
-                width: 3,
-                transform: "translateX(-50%)",
-                background: "#3a3a3a",
-                boxShadow: "0 0 2px rgba(0,0,0,0.4)",
-              }}
-            />
-          ))}
-          {/* Horizontal joints — between each row */}
-          {Array.from({ length: gridRows.length - 1 }, (_, i) => {
-            const pct = ((i + 1) / gridRows.length) * 100;
-            return (
-              <div
-                key={`h-${i}`}
-                className="absolute left-0 right-0"
-                style={{
-                  top: `${pct}%`,
-                  height: 3,
-                  transform: "translateY(-50%)",
-                  background: "#3a3a3a",
-                  boxShadow: "0 0 2px rgba(0,0,0,0.4)",
-                }}
-              />
-            );
-          })}
-        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6">

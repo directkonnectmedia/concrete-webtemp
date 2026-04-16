@@ -117,10 +117,10 @@ export default function Services() {
     path.style.strokeDashoffset = `${totalLength}`;
 
     maskHolePath.style.strokeDasharray = `${totalLength}`;
-    maskHolePath.style.strokeDashoffset = `${totalLength}`;
+    maskHolePath.style.strokeDashoffset = "0";
 
     maskHoleHalo.style.strokeDasharray = `${totalLength}`;
-    maskHoleHalo.style.strokeDashoffset = `${totalLength}`;
+    maskHoleHalo.style.strokeDashoffset = "0";
 
     const SAMPLES = 256;
     const yToLength: { y: number; len: number }[] = [];
@@ -164,13 +164,11 @@ export default function Services() {
 
       const dashOffset = `${totalLength - len}`;
       path.style.strokeDashoffset = dashOffset;
-      maskHolePath.style.strokeDashoffset = dashOffset;
-      maskHoleHalo.style.strokeDashoffset = dashOffset;
 
       const pt = path.getPointAtLength(len);
       dot.setAttribute("cx", `${pt.x}`);
       dot.setAttribute("cy", `${pt.y}`);
-      dot.style.opacity = progress > 0.005 ? "1" : "0";
+      dot.style.opacity = "1";
 
       const semiDryLeadPct = 2.5;
       const curedTrailPct = 5;
@@ -300,7 +298,7 @@ export default function Services() {
         </div>
       </div>
 
-      {/* Layer 4: Site-color veil — solid except hole along snake path (reveals concrete) */}
+      {/* Layer 4: Site-color veil — full snake hole from load; orange line still draws with scroll */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none opacity-0 lg:opacity-100"
         viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}

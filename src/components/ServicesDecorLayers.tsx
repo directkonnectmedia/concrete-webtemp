@@ -42,11 +42,14 @@ export type ServicesDecorLayersProps = {
   scrollRootRef: RefObject<HTMLElement | null>;
   /** Screen recording: always show layers + eager image decode (not only lg:) */
   priorityCapture?: boolean;
+  /** Hide orange dot only (path stays for mask sync). Used on /services-capture for clean plate. */
+  hideOrangeDot?: boolean;
 };
 
 export default function ServicesDecorLayers({
   scrollRootRef,
   priorityCapture = false,
+  hideOrangeDot = false,
 }: ServicesDecorLayersProps) {
   const pathRef = useRef<SVGPathElement>(null);
   const dotRef = useRef<SVGCircleElement>(null);
@@ -63,7 +66,8 @@ export default function ServicesDecorLayers({
     const dot = dotRef.current;
     const semiDryLayer = semiDryRef.current;
     const curedLayer = curedRef.current;
-    if (!section || !path || !dot || !semiDryLayer || !curedLayer) return;
+    if (!section || !path || !semiDryLayer || !curedLayer) return;
+    if (!hideOrangeDot && !dot) return;
 
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
@@ -114,9 +118,11 @@ export default function ServicesDecorLayers({
       path.style.strokeDashoffset = dashOffset;
 
       const pt = path.getPointAtLength(len);
-      dot.setAttribute("cx", `${pt.x}`);
-      dot.setAttribute("cy", `${pt.y}`);
-      dot.style.opacity = "1";
+      if (dot) {
+        dot.setAttribute("cx", `${pt.x}`);
+        dot.setAttribute("cy", `${pt.y}`);
+        dot.style.opacity = "1";
+      }
 
       const semiDryLeadPct = 2.5;
       const curedTrailPct = 5;
@@ -154,9 +160,7 @@ export default function ServicesDecorLayers({
       window.removeEventListener("resize", scheduleTick);
       if (rafId != null) window.cancelAnimationFrame(rafId);
     };
-    // scrollRootRef identity is stable; read .current inside effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
-  }, []);
+  }, [hideOrangeDot, scrollRootRef]);
 
   const wetColumns = [0, 1, 2, 3].map((col) => buildColumnStack(WET_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
   const semiDryColumns = [0, 1, 2, 3].map((col) => buildColumnStack(SEMI_DRY_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
@@ -264,7 +268,7 @@ export default function ServicesDecorLayers({
           strokeLinecap="round"
           opacity="0.25"
         />
-        <circle ref={dotRef} r="10" fill="#F47B20" opacity="0" />
+        {!hideOrangeDot ? <circle ref={dotRef} r="10" fill="#F47B20" opacity="0" /> : null}
       </svg>
     </>
   );

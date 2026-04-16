@@ -40,7 +40,7 @@ function ServicesCaptureInner() {
   return (
     <main className="min-h-screen bg-white">
       <section ref={sectionRef} className="relative bg-gray-light overflow-hidden">
-        <ServicesDecorLayers scrollRootRef={sectionRef} priorityCapture />
+        <ServicesDecorLayers scrollRootRef={sectionRef} priorityCapture hideOrangeDot />
         <div
           aria-hidden
           className="w-full pointer-events-none"

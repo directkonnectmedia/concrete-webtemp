@@ -50,6 +50,7 @@ const SNAKE_D = `M 900 500
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
+const CURED_PHOTOS = ["/concrete/cured/C1.png", "/concrete/cured/C2.png", "/concrete/cured/C3.png", "/concrete/cured/C4.png"];
 
 const COLUMN_SEQUENCES = [
   [0, 1, 2, 3, 2, 0, 3, 1, 1, 3, 0, 2, 3, 2, 1, 0],
@@ -72,13 +73,15 @@ export default function Services() {
   const pathRef = useRef<SVGPathElement>(null);
   const dotRef = useRef<SVGCircleElement>(null);
   const semiDryRef = useRef<HTMLDivElement>(null);
+  const curedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     const path = pathRef.current;
     const dot = dotRef.current;
     const semiDryLayer = semiDryRef.current;
-    if (!section || !path || !dot || !semiDryLayer) return;
+    const curedLayer = curedRef.current;
+    if (!section || !path || !dot || !semiDryLayer || !curedLayer) return;
 
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
@@ -128,10 +131,16 @@ export default function Services() {
 
       const FORCE_FIELD = 3;
       const dotPct = (pt.y / VIEWBOX_H) * 100;
+
       const dryEdge = Math.min(Math.max(dotPct + FORCE_FIELD, 0), 100);
-      const mask = `linear-gradient(to bottom, black ${dryEdge}%, transparent ${dryEdge + 4}%)`;
-      semiDryLayer.style.maskImage = mask;
-      semiDryLayer.style.webkitMaskImage = mask;
+      const semiDryMask = `linear-gradient(to bottom, black ${dryEdge}%, transparent ${dryEdge + 4}%)`;
+      semiDryLayer.style.maskImage = semiDryMask;
+      semiDryLayer.style.webkitMaskImage = semiDryMask;
+
+      const curedEdge = Math.min(Math.max(dotPct - FORCE_FIELD, 0), 100);
+      const curedMask = `linear-gradient(to bottom, black ${curedEdge}%, transparent ${curedEdge + 4}%)`;
+      curedLayer.style.maskImage = curedMask;
+      curedLayer.style.webkitMaskImage = curedMask;
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -142,6 +151,7 @@ export default function Services() {
 
   const wetColumns = [0, 1, 2, 3].map((col) => buildColumnStack(WET_PHOTOS, col, 16));
   const semiDryColumns = [0, 1, 2, 3].map((col) => buildColumnStack(SEMI_DRY_PHOTOS, col, 16));
+  const curedColumns = [0, 1, 2, 3].map((col) => buildColumnStack(CURED_PHOTOS, col, 16));
 
   return (
     <section
@@ -182,6 +192,31 @@ export default function Services() {
       >
         <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
           {semiDryColumns.map((stack, colIdx) => (
+            <div key={colIdx} className="w-1/4 flex-shrink-0">
+              {stack.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  className="w-full block"
+                  loading="lazy"
+                  draggable={false}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Layer 3: Cured concrete — fades in trailing behind the dot */}
+      <div
+        ref={curedRef}
+        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
+        aria-hidden="true"
+        style={{ zIndex: 0, maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)" }}
+      >
+        <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
+          {curedColumns.map((stack, colIdx) => (
             <div key={colIdx} className="w-1/4 flex-shrink-0">
               {stack.map((src, i) => (
                 <img

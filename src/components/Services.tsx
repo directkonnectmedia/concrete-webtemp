@@ -121,18 +121,18 @@ export default function Services() {
     >
       {/* Wet concrete background grid — desktop only */}
       <div
-        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none"
+        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
         aria-hidden="true"
         style={{ zIndex: 0 }}
       >
-        <div className="w-full h-full grid grid-cols-4">
+        <div className="w-full h-full grid grid-cols-4 gap-0" style={{ fontSize: 0, lineHeight: 0 }}>
           {gridRows.flatMap((row, rIdx) =>
             row.map((src, cIdx) => (
               <img
                 key={`${rIdx}-${cIdx}`}
                 src={src}
                 alt=""
-                className="w-full h-auto block"
+                className="w-full h-full block object-cover"
                 loading="lazy"
                 draggable={false}
               />

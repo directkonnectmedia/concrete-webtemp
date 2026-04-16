@@ -88,12 +88,9 @@ export default function Services() {
 
     const onScroll = () => {
       const rect = section.getBoundingClientRect();
-      const sectionHeight = rect.height;
       const windowHeight = window.innerHeight;
-
-      const start = rect.top + windowHeight * 0.3;
-      const scrollable = sectionHeight - windowHeight * 0.4;
-      const progress = Math.min(Math.max(-start / scrollable, 0), 1);
+      const viewportCenter = windowHeight / 2;
+      const progress = Math.min(Math.max((viewportCenter - rect.top) / (rect.bottom - rect.top), 0), 1);
 
       const drawLength = totalLength * (1 - progress);
       path.style.strokeDashoffset = `${drawLength}`;

@@ -58,6 +58,22 @@ export default function Services() {
           </h2>
         </div>
 
+        <div className="max-w-4xl mx-auto mb-20 md:mb-28 reveal relative z-10">
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray/50 bg-black">
+            <video
+              className="w-full max-h-[min(70vh,720px)] object-contain mx-auto block"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+              preload="metadata"
+            >
+              <source src="/services-showcase.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+
         {/* Service cards — staggered left / right */}
         <div className="relative z-10 space-y-20 md:space-y-32 lg:space-y-40">
           {services.map((svc, i) => {

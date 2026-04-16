@@ -48,30 +48,6 @@ const SNAKE_D = `M 900 500
    C 350 3550, 800 3500, 950 3650
    C 1100 3800, 1100 4000, 900 4150`;
 
-const WHITE_VEIL_MASK_STROKE = 195;
-/** Blur radius; darker-composite keeps inner cutout crisp while fog fades outward */
-const WHITE_VEIL_MASK_FEATHER = 38;
-/** Extra width (each side of path) for outer veil-side fade only; does not shrink the core hole */
-/** 2× prior step (was 1.2× base); scales outset, blur, and halo opacity */
-const WHITE_VEIL_EDGE_HALO_INTENSITY = 2.4;
-const WHITE_VEIL_EDGE_HALO_OUTSET = Math.round(58 * WHITE_VEIL_EDGE_HALO_INTENSITY);
-/** Wider soft ring: more transparent near outline, solid farther into the veil */
-const WHITE_VEIL_EDGE_HALO_FEATHER = Math.round(48 * WHITE_VEIL_EDGE_HALO_INTENSITY);
-const WHITE_VEIL_EDGE_HALO_STROKE_OPACITY = Math.min(
-  1,
-  Number((0.44 * WHITE_VEIL_EDGE_HALO_INTENSITY).toFixed(3)),
-);
-const WHITE_VEIL_EDGE_HALO_STROKE = WHITE_VEIL_MASK_STROKE + 2 * WHITE_VEIL_EDGE_HALO_OUTSET;
-const WHITE_VEIL_MASK_ID = "services-white-veil-mask";
-const WHITE_VEIL_MASK_BLUR_FILTER_ID = `${WHITE_VEIL_MASK_ID}-blur`;
-const WHITE_VEIL_MASK_HALO_FILTER_ID = `${WHITE_VEIL_MASK_ID}-halo-blur`;
-const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 7);
-const WHITE_VEIL_MASK_HALO_FILTER_PAD = Math.ceil(WHITE_VEIL_EDGE_HALO_FEATHER * 8);
-
-/** Veil only strong in lower section; soft ramp so it reads as “rising from the bottom” (CSS alpha mask) */
-const WHITE_VEIL_VERTICAL_FADE =
-  "linear-gradient(to bottom, transparent 0%, transparent 30%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.65) 48%, rgba(0,0,0,0.95) 55%, #000 62%, #000 100%)";
-
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
 const CURED_PHOTOS = ["/concrete/cured/C1.png", "/concrete/cured/C2.png", "/concrete/cured/C3.png", "/concrete/cured/C4.png"];
@@ -101,8 +77,6 @@ export default function Services() {
   const dotRef = useRef<SVGCircleElement>(null);
   const semiDryRef = useRef<HTMLDivElement>(null);
   const curedRef = useRef<HTMLDivElement>(null);
-  const maskHolePathRef = useRef<SVGPathElement>(null);
-  const maskHoleHaloRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -110,21 +84,13 @@ export default function Services() {
     const dot = dotRef.current;
     const semiDryLayer = semiDryRef.current;
     const curedLayer = curedRef.current;
-    const maskHolePath = maskHolePathRef.current;
-    const maskHoleHalo = maskHoleHaloRef.current;
-    if (!section || !path || !dot || !semiDryLayer || !curedLayer || !maskHolePath || !maskHoleHalo) return;
+    if (!section || !path || !dot || !semiDryLayer || !curedLayer) return;
 
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
 
     path.style.strokeDasharray = `${totalLength}`;
     path.style.strokeDashoffset = `${totalLength}`;
-
-    maskHolePath.style.strokeDasharray = `${totalLength}`;
-    maskHolePath.style.strokeDashoffset = "0";
-
-    maskHoleHalo.style.strokeDasharray = `${totalLength}`;
-    maskHoleHalo.style.strokeDashoffset = "0";
 
     const SAMPLES = 256;
     const yToLength: { y: number; len: number }[] = [];
@@ -155,7 +121,7 @@ export default function Services() {
       rafId = null;
       const rect = section.getBoundingClientRect();
       const windowHeight = window.innerHeight;
-      // Skip heavy mask/SVG work while far off-screen (scroll fires for whole document)
+      // Skip work while far off-screen (scroll fires for whole document)
       if (rect.bottom < -100 || rect.top > windowHeight + 100) return;
 
       const viewportCenter = windowHeight / 2;
@@ -302,94 +268,14 @@ export default function Services() {
         </div>
       </div>
 
-      {/* Layer 4: Site-color veil — full snake hole; fades in from ~bottom half via vertical CSS mask */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-0 lg:opacity-100"
-        viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
-        preserveAspectRatio="none"
-        aria-hidden="true"
-        style={{
-          zIndex: 1,
-          maskImage: WHITE_VEIL_VERTICAL_FADE,
-          WebkitMaskImage: WHITE_VEIL_VERTICAL_FADE,
-          maskSize: "100% 100%",
-          WebkitMaskSize: "100% 100%",
-          maskRepeat: "no-repeat",
-          WebkitMaskRepeat: "no-repeat",
-        }}
-      >
-        <defs>
-          <filter
-            id={WHITE_VEIL_MASK_BLUR_FILTER_ID}
-            x={-WHITE_VEIL_MASK_FILTER_PAD}
-            y={-WHITE_VEIL_MASK_FILTER_PAD}
-            width={VIEWBOX_W + WHITE_VEIL_MASK_FILTER_PAD * 2}
-            height={VIEWBOX_H + WHITE_VEIL_MASK_FILTER_PAD * 2}
-            filterUnits="userSpaceOnUse"
-            colorInterpolationFilters="sRGB"
-          >
-            <feGaussianBlur in="SourceGraphic" stdDeviation={WHITE_VEIL_MASK_FEATHER} result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="darker" />
-          </filter>
-          <filter
-            id={WHITE_VEIL_MASK_HALO_FILTER_ID}
-            x={-WHITE_VEIL_MASK_HALO_FILTER_PAD}
-            y={-WHITE_VEIL_MASK_HALO_FILTER_PAD}
-            width={VIEWBOX_W + WHITE_VEIL_MASK_HALO_FILTER_PAD * 2}
-            height={VIEWBOX_H + WHITE_VEIL_MASK_HALO_FILTER_PAD * 2}
-            filterUnits="userSpaceOnUse"
-            colorInterpolationFilters="sRGB"
-          >
-            <feGaussianBlur in="SourceGraphic" stdDeviation={WHITE_VEIL_EDGE_HALO_FEATHER} />
-          </filter>
-          <mask
-            id={WHITE_VEIL_MASK_ID}
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width={VIEWBOX_W}
-            height={VIEWBOX_H}
-          >
-            <rect width={VIEWBOX_W} height={VIEWBOX_H} fill="white" />
-            <path
-              ref={maskHolePathRef}
-              d={SNAKE_D}
-              fill="none"
-              stroke="black"
-              strokeWidth={WHITE_VEIL_MASK_STROKE}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              filter={`url(#${WHITE_VEIL_MASK_BLUR_FILTER_ID})`}
-            />
-            <path
-              ref={maskHoleHaloRef}
-              d={SNAKE_D}
-              fill="none"
-              stroke="black"
-              strokeWidth={WHITE_VEIL_EDGE_HALO_STROKE}
-              strokeOpacity={WHITE_VEIL_EDGE_HALO_STROKE_OPACITY}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              filter={`url(#${WHITE_VEIL_MASK_HALO_FILTER_ID})`}
-            />
-          </mask>
-        </defs>
-        <rect
-          width={VIEWBOX_W}
-          height={VIEWBOX_H}
-          fill="var(--color-gray-light)"
-          mask={`url(#${WHITE_VEIL_MASK_ID})`}
-        />
-      </svg>
-
-      {/* Animated orange snake line — above veil so it stays visible */}
+      {/* Orange scroll guide — no gray veil (removed for performance) */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none opacity-0 lg:opacity-100"
         viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
         preserveAspectRatio="none"
         fill="none"
         aria-hidden="true"
-        style={{ zIndex: 2 }}
+        style={{ zIndex: 1 }}
       >
         <path
           ref={pathRef}

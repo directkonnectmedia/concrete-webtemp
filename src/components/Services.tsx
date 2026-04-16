@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 const services = [
   {
@@ -34,46 +34,104 @@ const services = [
   },
 ];
 
+const VIEWBOX_W = 1200;
+const VIEWBOX_H = 4200;
+const TILE_SPACING = 10;
+const TILE_W = 70;
+const TILE_H = 12;
+
 export default function Services() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const dotRef = useRef<SVGCircleElement>(null);
+  const tilesRef = useRef<HTMLDivElement>(null);
+  const tileEls = useRef<HTMLDivElement[]>([]);
 
-  useEffect(() => {
+  const buildTiles = useCallback(() => {
     const section = sectionRef.current;
     const path = pathRef.current;
-    const dot = dotRef.current;
-    if (!section || !path || !dot) return;
+    const container = tilesRef.current;
+    if (!section || !path || !container) return;
 
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
 
-    path.style.strokeDasharray = `${totalLength}`;
-    path.style.strokeDashoffset = `${totalLength}`;
+    container.innerHTML = "";
+    tileEls.current = [];
+
+    const sectionRect = section.getBoundingClientRect();
+    const scaleX = sectionRect.width / VIEWBOX_W;
+    const scaleY = sectionRect.height / VIEWBOX_H;
+
+    const count = Math.floor(totalLength / TILE_SPACING);
+
+    for (let i = 0; i <= count; i++) {
+      const dist = i * TILE_SPACING;
+      const pt = path.getPointAtLength(dist);
+      const ptNext = path.getPointAtLength(Math.min(dist + 2, totalLength));
+
+      const angle = Math.atan2(ptNext.y - pt.y, ptNext.x - pt.x) * (180 / Math.PI);
+
+      const px = pt.x * scaleX;
+      const py = pt.y * scaleY;
+
+      const tile = document.createElement("div");
+      tile.style.cssText = `
+        position:absolute;
+        left:${px}px;
+        top:${py}px;
+        width:${TILE_W}px;
+        height:${TILE_H}px;
+        background:url(/concrete-tile.png) center/cover no-repeat;
+        transform:translate(-50%,-50%) rotate(${angle}deg);
+        opacity:0;
+        will-change:opacity;
+      `;
+      container.appendChild(tile);
+      tileEls.current.push(tile);
+    }
+  }, []);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    const path = pathRef.current;
+    if (!section || !path) return;
+
+    buildTiles();
+
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(buildTiles, 200);
+    };
 
     const onScroll = () => {
       const rect = section.getBoundingClientRect();
-      const sectionTop = rect.top;
       const sectionHeight = rect.height;
       const windowHeight = window.innerHeight;
 
-      const start = sectionTop + windowHeight * 0.3;
+      const start = rect.top + windowHeight * 0.3;
       const scrollable = sectionHeight - windowHeight * 0.4;
       const progress = Math.min(Math.max(-start / scrollable, 0), 1);
 
-      const drawLength = totalLength * (1 - progress);
-      path.style.strokeDashoffset = `${drawLength}`;
+      const tiles = tileEls.current;
+      const total = tiles.length;
+      const revealIdx = Math.floor(progress * total);
 
-      const point = path.getPointAtLength(totalLength * progress);
-      dot.setAttribute("cx", `${point.x}`);
-      dot.setAttribute("cy", `${point.y}`);
-      dot.style.opacity = progress > 0.01 && progress < 0.99 ? "1" : "0";
+      for (let i = 0; i < total; i++) {
+        tiles[i].style.opacity = i <= revealIdx ? "1" : "0";
+      }
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
     onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
+  }, [buildTiles]);
 
   return (
     <section
@@ -93,44 +151,36 @@ export default function Services() {
           </h2>
         </div>
 
-        {/* SVG snake line — visible on desktop only via opacity */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-0 lg:opacity-100 transition-opacity"
+        {/* Invisible SVG path used as the mathematical guide for tile placement */}
+        <svg
+          className="absolute top-0 left-0 w-full h-full pointer-events-none"
+          viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
+          preserveAspectRatio="none"
+          fill="none"
           aria-hidden="true"
+          style={{ opacity: 0 }}
         >
-          <svg
-            className="absolute top-0 left-0 w-full h-full"
-            viewBox="0 0 1200 4200"
-            preserveAspectRatio="none"
-            fill="none"
-          >
-            <path
-              ref={pathRef}
-              d="M 900 500
-                 C 1100 600, 1100 850, 900 1000
-                 C 700 1150, 300 1100, 200 1250
-                 C 100 1400, 100 1650, 200 1800
-                 C 350 1950, 800 1900, 950 2050
-                 C 1100 2200, 1100 2450, 950 2600
-                 C 750 2750, 300 2700, 200 2850
-                 C 100 3000, 100 3250, 200 3400
-                 C 350 3550, 800 3500, 950 3650
-                 C 1100 3800, 1100 4000, 900 4150"
-              stroke="#F47B20"
-              strokeWidth="4"
-              strokeDasharray="14 10"
-              strokeLinecap="round"
-              opacity="0.25"
-            />
-            <circle
-              ref={dotRef}
-              r="10"
-              fill="#F47B20"
-              opacity="0"
-              style={{ transition: "opacity 0.3s" }}
-            />
-          </svg>
-        </div>
+          <path
+            ref={pathRef}
+            d="M 900 500
+               C 1100 600, 1100 850, 900 1000
+               C 700 1150, 300 1100, 200 1250
+               C 100 1400, 100 1650, 200 1800
+               C 350 1950, 800 1900, 950 2050
+               C 1100 2200, 1100 2450, 950 2600
+               C 750 2750, 300 2700, 200 2850
+               C 100 3000, 100 3250, 200 3400
+               C 350 3550, 800 3500, 950 3650
+               C 1100 3800, 1100 4000, 900 4150"
+          />
+        </svg>
+
+        {/* Tile container — concrete tiles placed along the path */}
+        <div
+          ref={tilesRef}
+          className="absolute inset-0 pointer-events-none opacity-0 lg:opacity-100"
+          aria-hidden="true"
+        />
 
         {/* Service cards — staggered left / right */}
         <div className="relative z-10 space-y-20 md:space-y-32 lg:space-y-40">

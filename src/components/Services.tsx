@@ -52,13 +52,13 @@ const WHITE_VEIL_MASK_STROKE = 195;
 /** Blur radius; darker-composite keeps inner cutout crisp while fog fades outward */
 const WHITE_VEIL_MASK_FEATHER = 38;
 /** Extra width (each side of path) for outer veil-side fade only; does not shrink the core hole */
-/** +20% vs prior halo (outset / blur / stroke opacity) */
-const WHITE_VEIL_EDGE_HALO_INTENSITY = 1.2;
+/** 2× prior step (was 1.2× base); scales outset, blur, and halo opacity */
+const WHITE_VEIL_EDGE_HALO_INTENSITY = 2.4;
 const WHITE_VEIL_EDGE_HALO_OUTSET = Math.round(58 * WHITE_VEIL_EDGE_HALO_INTENSITY);
 /** Wider soft ring: more transparent near outline, solid farther into the veil */
 const WHITE_VEIL_EDGE_HALO_FEATHER = Math.round(48 * WHITE_VEIL_EDGE_HALO_INTENSITY);
 const WHITE_VEIL_EDGE_HALO_STROKE_OPACITY = Math.min(
-  0.72,
+  1,
   Number((0.44 * WHITE_VEIL_EDGE_HALO_INTENSITY).toFixed(3)),
 );
 const WHITE_VEIL_EDGE_HALO_STROKE = WHITE_VEIL_MASK_STROKE + 2 * WHITE_VEIL_EDGE_HALO_OUTSET;

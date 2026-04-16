@@ -50,24 +50,14 @@ const SNAKE_D = `M 900 500
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 
-const GRID_PERMUTATIONS = [
-  [0, 1, 2, 3],
-  [2, 0, 3, 1],
-  [3, 2, 1, 0],
-  [1, 3, 0, 2],
-  [0, 2, 3, 1],
-  [3, 1, 0, 2],
-  [2, 3, 1, 0],
-  [1, 0, 2, 3],
-];
+const COLUMN_SEQUENCE = [0, 1, 2, 3, 2, 0, 3, 1, 1, 3, 0, 2, 3, 2, 1, 0];
 
-function buildGridRows(rowCount: number) {
-  const rows: string[][] = [];
-  for (let r = 0; r < rowCount; r++) {
-    const perm = GRID_PERMUTATIONS[r % GRID_PERMUTATIONS.length];
-    rows.push(perm.map((idx) => WET_PHOTOS[idx]));
+function buildColumnStack(repeatCount: number) {
+  const stack: string[] = [];
+  for (let i = 0; i < repeatCount; i++) {
+    stack.push(WET_PHOTOS[COLUMN_SEQUENCE[i % COLUMN_SEQUENCE.length]]);
   }
-  return rows;
+  return stack;
 }
 
 export default function Services() {
@@ -111,7 +101,7 @@ export default function Services() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const gridRows = buildGridRows(12);
+  const columnStack = buildColumnStack(16);
 
   return (
     <section
@@ -119,26 +109,22 @@ export default function Services() {
       ref={sectionRef}
       className="relative bg-gray-light pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden"
     >
-      {/* Wet concrete background grid — desktop only */}
+      {/* Single column prototype — stacked Lego-style, desktop only */}
       <div
-        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
+        className="absolute top-0 left-0 w-1/4 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
         aria-hidden="true"
-        style={{ zIndex: 0 }}
+        style={{ zIndex: 0, fontSize: 0, lineHeight: 0 }}
       >
-        <div className="w-full h-full grid grid-cols-4 gap-0" style={{ fontSize: 0, lineHeight: 0 }}>
-          {gridRows.flatMap((row, rIdx) =>
-            row.map((src, cIdx) => (
-              <img
-                key={`${rIdx}-${cIdx}`}
-                src={src}
-                alt=""
-                className="w-full h-full block object-cover"
-                loading="lazy"
-                draggable={false}
-              />
-            ))
-          )}
-        </div>
+        {columnStack.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt=""
+            className="w-full block"
+            loading="lazy"
+            draggable={false}
+          />
+        ))}
       </div>
 
       <div className="max-w-7xl mx-auto px-6">

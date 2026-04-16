@@ -45,6 +45,12 @@ export default function Navbar() {
           <a href="#reviews" className={`text-sm font-medium transition-colors ${scrolled ? "text-dark hover:text-orange" : "text-white hover:text-orange-light"}`}>
             Reviews
           </a>
+          <Link
+            href="/services-capture"
+            className={`text-sm font-medium transition-colors ${scrolled ? "text-dark/70 hover:text-orange" : "text-white/80 hover:text-orange-light"}`}
+          >
+            Background capture
+          </Link>
           <a
             href="tel:+14803062547"
             className={`text-sm font-semibold transition-colors ${scrolled ? "text-navy" : "text-white"}`}
@@ -82,6 +88,9 @@ export default function Navbar() {
           <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="text-dark font-medium hover:text-orange transition-colors">How It Works</a>
           <a href="#gallery" onClick={() => setMenuOpen(false)} className="text-dark font-medium hover:text-orange transition-colors">Gallery</a>
           <a href="#reviews" onClick={() => setMenuOpen(false)} className="text-dark font-medium hover:text-orange transition-colors">Reviews</a>
+          <Link href="/services-capture" onClick={() => setMenuOpen(false)} className="text-dark/80 font-medium hover:text-orange transition-colors">
+            Background capture
+          </Link>
           <a href="tel:+14803062547" className="text-navy font-semibold">(480) 306-2547</a>
           <a href="#quote" onClick={() => setMenuOpen(false)} className="bg-gradient-to-r from-orange to-orange-light text-white font-semibold text-center px-6 py-3 rounded-full">
             Get Free Quote

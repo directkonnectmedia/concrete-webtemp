@@ -49,10 +49,11 @@ const SNAKE_D = `M 900 500
    C 1100 3800, 1100 4000, 900 4150`;
 
 const WHITE_VEIL_MASK_STROKE = 195;
-/** feGaussianBlur stdDeviation — softens veil vs concrete at the path edges */
-const WHITE_VEIL_MASK_FEATHER = 16;
+/** Blur radius; darker-composite keeps inner cutout crisp while fog fades outward */
+const WHITE_VEIL_MASK_FEATHER = 28;
 const WHITE_VEIL_MASK_ID = "services-white-veil-mask";
 const WHITE_VEIL_MASK_BLUR_FILTER_ID = `${WHITE_VEIL_MASK_ID}-blur`;
+const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 6);
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
@@ -263,14 +264,15 @@ export default function Services() {
         <defs>
           <filter
             id={WHITE_VEIL_MASK_BLUR_FILTER_ID}
-            x={-120}
-            y={-120}
-            width={VIEWBOX_W + 240}
-            height={VIEWBOX_H + 240}
+            x={-WHITE_VEIL_MASK_FILTER_PAD}
+            y={-WHITE_VEIL_MASK_FILTER_PAD}
+            width={VIEWBOX_W + WHITE_VEIL_MASK_FILTER_PAD * 2}
+            height={VIEWBOX_H + WHITE_VEIL_MASK_FILTER_PAD * 2}
             filterUnits="userSpaceOnUse"
             colorInterpolationFilters="sRGB"
           >
             <feGaussianBlur in="SourceGraphic" stdDeviation={WHITE_VEIL_MASK_FEATHER} result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="darker" />
           </filter>
           <mask
             id={WHITE_VEIL_MASK_ID}

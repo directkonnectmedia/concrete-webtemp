@@ -49,6 +49,7 @@ const SNAKE_D = `M 900 500
    C 1100 3800, 1100 4000, 900 4150`;
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
+const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
 
 const COLUMN_SEQUENCES = [
   [0, 1, 2, 3, 2, 0, 3, 1, 1, 3, 0, 2, 3, 2, 1, 0],
@@ -57,11 +58,11 @@ const COLUMN_SEQUENCES = [
   [3, 2, 1, 0, 1, 3, 0, 2, 2, 0, 1, 3, 0, 1, 2, 3],
 ];
 
-function buildColumnStack(colIndex: number, count: number) {
+function buildColumnStack(photos: string[], colIndex: number, count: number) {
   const seq = COLUMN_SEQUENCES[colIndex % COLUMN_SEQUENCES.length];
   const stack: string[] = [];
   for (let i = 0; i < count; i++) {
-    stack.push(WET_PHOTOS[seq[i % seq.length]]);
+    stack.push(photos[seq[i % seq.length]]);
   }
   return stack;
 }
@@ -70,12 +71,14 @@ export default function Services() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const dotRef = useRef<SVGCircleElement>(null);
+  const semiDryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     const path = pathRef.current;
     const dot = dotRef.current;
-    if (!section || !path || !dot) return;
+    const semiDryLayer = semiDryRef.current;
+    if (!section || !path || !dot || !semiDryLayer) return;
 
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
@@ -99,6 +102,11 @@ export default function Services() {
       dot.setAttribute("cx", `${pt.x}`);
       dot.setAttribute("cy", `${pt.y}`);
       dot.style.opacity = progress > 0.005 ? "1" : "0";
+
+      const dryReveal = Math.min(Math.max((progress - 0.1) / 0.4, 0), 1) * 120;
+      const mask = `linear-gradient(to bottom, black ${dryReveal}%, transparent ${dryReveal + 10}%)`;
+      semiDryLayer.style.maskImage = mask;
+      semiDryLayer.style.webkitMaskImage = mask;
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -107,7 +115,8 @@ export default function Services() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const columns = [0, 1, 2, 3].map((col) => buildColumnStack(col, 16));
+  const wetColumns = [0, 1, 2, 3].map((col) => buildColumnStack(WET_PHOTOS, col, 16));
+  const semiDryColumns = [0, 1, 2, 3].map((col) => buildColumnStack(SEMI_DRY_PHOTOS, col, 16));
 
   return (
     <section
@@ -115,14 +124,39 @@ export default function Services() {
       ref={sectionRef}
       className="relative bg-gray-light pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden"
     >
-      {/* Wet concrete background — 4 Lego-stacked columns, desktop only */}
+      {/* Layer 1: Wet concrete background */}
       <div
         className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
         aria-hidden="true"
         style={{ zIndex: 0 }}
       >
         <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
-          {columns.map((stack, colIdx) => (
+          {wetColumns.map((stack, colIdx) => (
+            <div key={colIdx} className="w-1/4 flex-shrink-0">
+              {stack.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  className="w-full block"
+                  loading="lazy"
+                  draggable={false}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Layer 2: Semi-dry concrete — fades in from top as user scrolls */}
+      <div
+        ref={semiDryRef}
+        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
+        aria-hidden="true"
+        style={{ zIndex: 0, maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)" }}
+      >
+        <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
+          {semiDryColumns.map((stack, colIdx) => (
             <div key={colIdx} className="w-1/4 flex-shrink-0">
               {stack.map((src, i) => (
                 <img

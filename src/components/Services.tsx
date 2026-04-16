@@ -126,8 +126,10 @@ export default function Services() {
       dot.setAttribute("cy", `${pt.y}`);
       dot.style.opacity = progress > 0.005 ? "1" : "0";
 
-      const dryReveal = Math.min(Math.max((progress - 0.1) / 0.4, 0), 1) * 120;
-      const mask = `linear-gradient(to bottom, black ${dryReveal}%, transparent ${dryReveal + 10}%)`;
+      const FORCE_FIELD = 5;
+      const dotPct = (pt.y / VIEWBOX_H) * 100;
+      const dryEdge = Math.min(Math.max(dotPct + FORCE_FIELD, 0), 100);
+      const mask = `linear-gradient(to bottom, black ${dryEdge}%, transparent ${dryEdge + 4}%)`;
       semiDryLayer.style.maskImage = mask;
       semiDryLayer.style.webkitMaskImage = mask;
     };

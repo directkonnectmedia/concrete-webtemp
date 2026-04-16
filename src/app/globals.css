@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-orange: #F47B20;
+  --color-orange-light: #FF9A4D;
+  --color-orange-dark: #D96A10;
+  --color-navy: #1B2A5C;
+  --color-navy-light: #2A3F7E;
+  --color-navy-dark: #111B3E;
+  --color-white: #FFFFFF;
+  --color-gray-light: #F8F9FA;
+  --color-gray: #E9ECEF;
+  --color-dark: #1A1A1A;
+  --color-dark-muted: #6B7280;
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-script: 'Dancing Script', cursive;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #1A1A1A;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+/* Scroll-triggered animation base states */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+/* Side-entry reveal animations for alternating cards */
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Section wave dividers */
+.wave-divider {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+}
+.wave-divider svg {
+  position: relative;
+  display: block;
+  width: calc(100% + 1.3px);
+  height: 80px;
+}
+.wave-divider-top {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  transform: rotate(180deg);
+}
+.wave-divider-top svg {
+  position: relative;
+  display: block;
+  width: calc(100% + 1.3px);
+  height: 80px;
+}
+
+/* Review slider animation */
+@keyframes slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-slide {
+  animation: slide 30s linear infinite;
+}
+.animate-slide:hover {
+  animation-play-state: paused;
+}
+
+/* Counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scroll indicator bounce */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(12px); }
+}
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+/* Quote wizard step transitions */
+.wizard-step {
+  opacity: 0;
+  transform: translateX(30px);
+  transition: all 0.4s ease-out;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.wizard-step.active {
+  opacity: 1;
+  transform: translateX(0);
+  position: relative;
+  pointer-events: auto;
+}
+
+/* Lightbox */
+.lightbox-overlay {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.lightbox-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}

@@ -1,0 +1,17 @@
+*.docx
+*.md
+brand-reference.jpg
+.DS_Store
+Thumbs.db
+desktop.ini
+.vercel
+.cursor
+node_modules
+.next
+out
+.env
+.env.local
+.env.production.local
+.env.development.local
+*.tsbuildinfo
+next-env.d.ts

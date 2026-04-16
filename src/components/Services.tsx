@@ -215,7 +215,7 @@ export default function Services() {
         aria-hidden="true"
         style={{
           zIndex: 0,
-          filter: "brightness(1.1)",
+          filter: "brightness(0.95)",
           maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
           WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
         }}

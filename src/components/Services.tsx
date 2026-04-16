@@ -48,7 +48,7 @@ const SNAKE_D = `M 900 500
    C 350 3550, 800 3500, 950 3650
    C 1100 3800, 1100 4000, 900 4150`;
 
-const WHITE_VEIL_MASK_STROKE = 140;
+const WHITE_VEIL_MASK_STROKE = 161;
 const WHITE_VEIL_MASK_ID = "services-white-veil-mask";
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];

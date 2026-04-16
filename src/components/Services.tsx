@@ -211,7 +211,7 @@ export default function Services() {
       {/* Layer 3: Cured concrete — fades in trailing behind the dot */}
       <div
         ref={curedRef}
-        className="absolute inset-0 opacity-0 lg:opacity-75 pointer-events-none overflow-hidden"
+        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
         aria-hidden="true"
         style={{ zIndex: 0, maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)" }}
       >

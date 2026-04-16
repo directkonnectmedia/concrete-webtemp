@@ -1,7 +1,15 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 /** Toggle when bringing back staggered service cards + gallery photos. */
 const SHOW_SERVICE_CARDS = false;
+
+const SCROLL_IDLE_MS = 160;
+/** Wheel delta sensitivity (higher = more timeline motion per tick). */
+const WHEEL_SCRUB_SENS = 0.038;
+/** Window scroll delta sensitivity when wheel isn’t driving (e.g. touch). */
+const PAGE_SCROLL_SCRUB_SENS = 0.014;
 
 const services = [
   {
@@ -37,16 +45,86 @@ const services = [
 ];
 
 export default function Services() {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    const video = videoRef.current;
+    if (!section || !video) return;
+
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastScrollY = window.scrollY;
+    let lastWheelTs = 0;
+
+    const clearIdle = () => {
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+    };
+
+    const schedulePause = () => {
+      clearIdle();
+      idleTimer = setTimeout(() => {
+        video.pause();
+        idleTimer = null;
+      }, SCROLL_IDLE_MS);
+    };
+
+    const sectionActive = () => {
+      const r = section.getBoundingClientRect();
+      return (
+        r.top < window.innerHeight * 0.92 && r.bottom > window.innerHeight * 0.08
+      );
+    };
+
+    const scrub = (delta: number, sensitivity: number) => {
+      const dur = video.duration;
+      if (!sectionActive() || !dur || !Number.isFinite(dur)) return;
+      const step = delta * sensitivity * (dur / 100);
+      video.currentTime = Math.min(dur, Math.max(0, video.currentTime + step));
+      video.pause();
+      schedulePause();
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (!sectionActive()) return;
+      lastWheelTs = performance.now();
+      scrub(e.deltaY, WHEEL_SCRUB_SENS);
+    };
+
+    const onScroll = () => {
+      if (performance.now() - lastWheelTs < 100) {
+        lastScrollY = window.scrollY;
+        return;
+      }
+      const dy = window.scrollY - lastScrollY;
+      lastScrollY = window.scrollY;
+      if (Math.abs(dy) < 0.75) return;
+      scrub(dy, PAGE_SCROLL_SCRUB_SENS);
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("scroll", onScroll);
+      clearIdle();
+    };
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       id="services"
-      className="relative bg-white min-h-[min(88vh,920px)] md:min-h-[92vh] pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden"
+      className="relative min-h-[min(88vh,920px)] overflow-hidden bg-white pt-16 pb-28 md:min-h-[92vh] md:pt-24 md:pb-36"
     >
       <video
-        autoPlay
-        muted
-        loop
+        ref={videoRef}
         playsInline
+        controls
         preload="auto"
         className="absolute inset-0 z-0 h-full w-full object-cover"
       >

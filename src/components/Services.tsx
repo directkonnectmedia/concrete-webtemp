@@ -86,16 +86,42 @@ export default function Services() {
     path.style.strokeDasharray = `${totalLength}`;
     path.style.strokeDashoffset = `${totalLength}`;
 
+    const SAMPLES = 500;
+    const yToLength: { y: number; len: number }[] = [];
+    for (let i = 0; i <= SAMPLES; i++) {
+      const len = (i / SAMPLES) * totalLength;
+      const pt = path.getPointAtLength(len);
+      yToLength.push({ y: pt.y, len });
+    }
+
+    function lengthAtY(targetY: number): number {
+      let closest = yToLength[0];
+      let minDiff = Math.abs(closest.y - targetY);
+      for (let i = 1; i < yToLength.length; i++) {
+        const diff = Math.abs(yToLength[i].y - targetY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = yToLength[i];
+        }
+      }
+      return closest.len;
+    }
+
     const onScroll = () => {
       const rect = section.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const viewportCenter = windowHeight / 2;
-      const progress = Math.min(Math.max((viewportCenter - rect.top) / (rect.bottom - rect.top), 0), 1);
 
-      const drawLength = totalLength * (1 - progress);
-      path.style.strokeDashoffset = `${drawLength}`;
+      const sectionY = viewportCenter - rect.top;
+      const svgY = (sectionY / rect.height) * VIEWBOX_H;
+      const clampedY = Math.min(Math.max(svgY, yToLength[0].y), yToLength[yToLength.length - 1].y);
 
-      const pt = path.getPointAtLength(progress * totalLength);
+      const len = lengthAtY(clampedY);
+      const progress = len / totalLength;
+
+      path.style.strokeDashoffset = `${totalLength - len}`;
+
+      const pt = path.getPointAtLength(len);
       dot.setAttribute("cx", `${pt.x}`);
       dot.setAttribute("cy", `${pt.y}`);
       dot.style.opacity = progress > 0.005 ? "1" : "0";

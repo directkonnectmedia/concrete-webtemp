@@ -129,15 +129,16 @@ export default function Services() {
       dot.setAttribute("cy", `${pt.y}`);
       dot.style.opacity = progress > 0.005 ? "1" : "0";
 
-      const FORCE_FIELD = 3;
+      const semiDryLeadPct = 2.5;
+      const curedTrailPct = 5;
       const dotPct = (pt.y / VIEWBOX_H) * 100;
 
-      const dryEdge = Math.min(Math.max(dotPct + FORCE_FIELD, 0), 100);
+      const dryEdge = Math.min(Math.max(dotPct + semiDryLeadPct, 0), 100);
       const semiDryMask = `linear-gradient(to bottom, black ${dryEdge}%, transparent ${dryEdge + 4}%)`;
       semiDryLayer.style.maskImage = semiDryMask;
       semiDryLayer.style.webkitMaskImage = semiDryMask;
 
-      const curedEdge = Math.min(Math.max(dotPct - 6, 0), 100);
+      const curedEdge = Math.min(Math.max(dotPct - curedTrailPct, 0), 100);
       const curedMask = `linear-gradient(to bottom, black ${curedEdge}%, transparent ${curedEdge + 4}%)`;
       curedLayer.style.maskImage = curedMask;
       curedLayer.style.webkitMaskImage = curedMask;

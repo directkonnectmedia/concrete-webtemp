@@ -5,11 +5,8 @@ import { useEffect, useRef } from "react";
 /** Toggle when bringing back staggered service cards + gallery photos. */
 const SHOW_SERVICE_CARDS = false;
 
-const SCROLL_IDLE_MS = 160;
-/** Wheel delta sensitivity (higher = more timeline motion per tick). */
-const WHEEL_SCRUB_SENS = 0.038;
-/** Window scroll delta sensitivity when wheel isn’t driving (e.g. touch). */
-const PAGE_SCROLL_SCRUB_SENS = 0.014;
+/** Treat timeline as finished (unlock scroll) this close to duration. */
+const END_EPSILON_SEC = 0.25;
 
 const services = [
   {
@@ -53,65 +50,83 @@ export default function Services() {
     const video = videoRef.current;
     if (!section || !video) return;
 
-    let idleTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastScrollY = window.scrollY;
-    let lastWheelTs = 0;
+    let permanentlyUnlocked = false;
 
-    const clearIdle = () => {
-      if (idleTimer) {
-        clearTimeout(idleTimer);
-        idleTimer = null;
+    const tryUnlockFromProgress = () => {
+      const d = video.duration;
+      if (!d || !Number.isFinite(d)) return;
+      if (video.ended || video.currentTime >= d - END_EPSILON_SEC) {
+        permanentlyUnlocked = true;
       }
     };
 
-    const schedulePause = () => {
-      clearIdle();
-      idleTimer = setTimeout(() => {
-        video.pause();
-        idleTimer = null;
-      }, SCROLL_IDLE_MS);
+    const maxScrollWhileLocked = () => {
+      const top = window.scrollY + section.getBoundingClientRect().top;
+      return top + section.offsetHeight - window.innerHeight;
     };
 
-    const sectionActive = () => {
-      const r = section.getBoundingClientRect();
-      return (
-        r.top < window.innerHeight * 0.92 && r.bottom > window.innerHeight * 0.08
-      );
+    const clampIfNeeded = () => {
+      if (permanentlyUnlocked) return;
+      tryUnlockFromProgress();
+      if (permanentlyUnlocked) return;
+      const maxY = maxScrollWhileLocked();
+      if (window.scrollY > maxY + 1) {
+        window.scrollTo(0, Math.max(0, maxY));
+      }
     };
 
-    const scrub = (delta: number, sensitivity: number) => {
-      const dur = video.duration;
-      if (!sectionActive() || !dur || !Number.isFinite(dur)) return;
-      const step = delta * sensitivity * (dur / 100);
-      video.currentTime = Math.min(dur, Math.max(0, video.currentTime + step));
-      video.pause();
-      schedulePause();
-    };
+    const onScroll = () => clampIfNeeded();
 
     const onWheel = (e: WheelEvent) => {
-      if (!sectionActive()) return;
-      lastWheelTs = performance.now();
-      scrub(e.deltaY, WHEEL_SCRUB_SENS);
-    };
-
-    const onScroll = () => {
-      if (performance.now() - lastWheelTs < 100) {
-        lastScrollY = window.scrollY;
-        return;
+      if (permanentlyUnlocked) return;
+      tryUnlockFromProgress();
+      if (permanentlyUnlocked) return;
+      const maxY = maxScrollWhileLocked();
+      if (window.scrollY >= maxY - 0.5 && e.deltaY > 0) {
+        e.preventDefault();
       }
-      const dy = window.scrollY - lastScrollY;
-      lastScrollY = window.scrollY;
-      if (Math.abs(dy) < 0.75) return;
-      scrub(dy, PAGE_SCROLL_SCRUB_SENS);
     };
 
-    window.addEventListener("wheel", onWheel, { passive: true });
+    const onEnded = () => {
+      permanentlyUnlocked = true;
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const ent of entries) {
+          if (
+            ent.isIntersecting &&
+            ent.intersectionRatio >= 0.2 &&
+            !video.ended
+          ) {
+            void video.play().catch(() => {});
+          }
+        }
+      },
+      { threshold: [0, 0.2, 0.35] },
+    );
+    io.observe(section);
+
+    video.addEventListener("ended", onEnded);
+    video.addEventListener("seeked", tryUnlockFromProgress);
+    video.addEventListener("timeupdate", tryUnlockFromProgress);
+    video.addEventListener("loadedmetadata", clampIfNeeded);
+
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("resize", clampIfNeeded);
+
+    clampIfNeeded();
 
     return () => {
-      window.removeEventListener("wheel", onWheel);
+      io.disconnect();
+      video.removeEventListener("ended", onEnded);
+      video.removeEventListener("seeked", tryUnlockFromProgress);
+      video.removeEventListener("timeupdate", tryUnlockFromProgress);
+      video.removeEventListener("loadedmetadata", clampIfNeeded);
       window.removeEventListener("scroll", onScroll);
-      clearIdle();
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("resize", clampIfNeeded);
     };
   }, []);
 
@@ -123,9 +138,11 @@ export default function Services() {
     >
       <video
         ref={videoRef}
+        muted
         playsInline
         controls
         preload="auto"
+        loop={false}
         className="absolute inset-0 z-0 h-full w-full object-cover"
       >
         <source src="/services-showcase.mp4" type="video/mp4" />

@@ -7,6 +7,10 @@ const SHOW_SERVICE_CARDS = false;
 
 /** Treat timeline as finished (unlock scroll) this close to duration. */
 const END_EPSILON_SEC = 0.25;
+/** Stay this many px below the raw cap so the next section never peeks through. */
+const SCROLL_LOCK_BUFFER_PX = 32;
+/** Extra rAF clamps after scroll/wheel to absorb trackpad / touch momentum. */
+const CLAMP_BURST_FRAMES = 28;
 
 const services = [
   {
@@ -51,6 +55,9 @@ export default function Services() {
     if (!section || !video) return;
 
     let permanentlyUnlocked = false;
+    let burstRemaining = 0;
+    let burstRaf: number = 0;
+    let lastTouchY = 0;
 
     const tryUnlockFromProgress = () => {
       const d = video.duration;
@@ -62,71 +69,115 @@ export default function Services() {
 
     const maxScrollWhileLocked = () => {
       const top = window.scrollY + section.getBoundingClientRect().top;
-      return top + section.offsetHeight - window.innerHeight;
+      const raw = top + section.offsetHeight - window.innerHeight;
+      return Math.max(0, Math.floor(raw - SCROLL_LOCK_BUFFER_PX));
     };
 
-    const clampIfNeeded = () => {
+    const clampSync = () => {
       if (permanentlyUnlocked) return;
       tryUnlockFromProgress();
       if (permanentlyUnlocked) return;
       const maxY = maxScrollWhileLocked();
-      if (window.scrollY > maxY + 1) {
-        window.scrollTo(0, Math.max(0, maxY));
+      if (window.scrollY > maxY) {
+        document.documentElement.scrollTop = maxY;
+        document.body.scrollTop = maxY;
       }
     };
 
-    const onScroll = () => clampIfNeeded();
+    const pumpBurst = () => {
+      burstRaf = 0;
+      if (permanentlyUnlocked) {
+        burstRemaining = 0;
+        return;
+      }
+      clampSync();
+      burstRemaining--;
+      if (burstRemaining > 0) {
+        burstRaf = requestAnimationFrame(pumpBurst);
+      }
+    };
+
+    const runClampBurst = () => {
+      if (permanentlyUnlocked) return;
+      burstRemaining = CLAMP_BURST_FRAMES;
+      if (!burstRaf) {
+        burstRaf = requestAnimationFrame(pumpBurst);
+      }
+    };
+
+    const onScroll = () => {
+      clampSync();
+      if (!permanentlyUnlocked) runClampBurst();
+    };
 
     const onWheel = (e: WheelEvent) => {
       if (permanentlyUnlocked) return;
       tryUnlockFromProgress();
       if (permanentlyUnlocked) return;
       const maxY = maxScrollWhileLocked();
-      if (window.scrollY >= maxY - 0.5 && e.deltaY > 0) {
+      if (e.deltaY > 0 && window.scrollY >= maxY) {
         e.preventDefault();
+        clampSync();
+        runClampBurst();
+        return;
       }
+      if (e.deltaY > 0 && window.scrollY > maxY) {
+        e.preventDefault();
+        clampSync();
+      }
+      runClampBurst();
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      lastTouchY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (permanentlyUnlocked) return;
+      tryUnlockFromProgress();
+      if (permanentlyUnlocked) return;
+      const y = e.touches[0].clientY;
+      const fingerMovedUp = lastTouchY - y;
+      lastTouchY = y;
+      const maxY = maxScrollWhileLocked();
+      if (fingerMovedUp > 0 && window.scrollY >= maxY) {
+        e.preventDefault();
+        clampSync();
+      }
+      runClampBurst();
     };
 
     const onEnded = () => {
       permanentlyUnlocked = true;
     };
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const ent of entries) {
-          if (
-            ent.isIntersecting &&
-            ent.intersectionRatio >= 0.2 &&
-            !video.ended
-          ) {
-            void video.play().catch(() => {});
-          }
-        }
-      },
-      { threshold: [0, 0.2, 0.35] },
-    );
-    io.observe(section);
-
     video.addEventListener("ended", onEnded);
     video.addEventListener("seeked", tryUnlockFromProgress);
     video.addEventListener("timeupdate", tryUnlockFromProgress);
-    video.addEventListener("loadedmetadata", clampIfNeeded);
+    video.addEventListener("loadedmetadata", clampSync);
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("resize", clampIfNeeded);
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    window.addEventListener("resize", clampSync);
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
 
-    clampIfNeeded();
+    clampSync();
 
     return () => {
-      io.disconnect();
+      if (burstRaf) {
+        cancelAnimationFrame(burstRaf);
+        burstRaf = 0;
+      }
       video.removeEventListener("ended", onEnded);
       video.removeEventListener("seeked", tryUnlockFromProgress);
       video.removeEventListener("timeupdate", tryUnlockFromProgress);
-      video.removeEventListener("loadedmetadata", clampIfNeeded);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("resize", clampIfNeeded);
+      video.removeEventListener("loadedmetadata", clampSync);
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("wheel", onWheel, { capture: true });
+      window.removeEventListener("resize", clampSync);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
     };
   }, []);
 
@@ -138,7 +189,6 @@ export default function Services() {
     >
       <video
         ref={videoRef}
-        muted
         playsInline
         controls
         preload="auto"

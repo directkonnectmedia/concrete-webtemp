@@ -3,16 +3,18 @@ import Image from "next/image";
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image */}
-      <Image
-        src="/hero-bg.jpg"
-        alt="Workers leveling fresh concrete"
-        fill
-        priority
-        className="object-cover"
-        sizes="100vw"
-        quality={90}
-      />
+      {/* Background video */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        poster="/hero-bg.jpg"
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/hero-video.mp4" type="video/mp4" />
+      </video>
 
       {/* Dark overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" />

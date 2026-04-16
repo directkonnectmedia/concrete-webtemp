@@ -42,14 +42,14 @@ export type ServicesDecorLayersProps = {
   scrollRootRef: RefObject<HTMLElement | null>;
   /** Screen recording: always show layers + eager image decode (not only lg:) */
   priorityCapture?: boolean;
-  /** Hide orange dot only (path stays for mask sync). Used on /services-capture for clean plate. */
-  hideOrangeDot?: boolean;
+  /** Hide orange dashed path + dot (path stays in DOM for mask math). /services-capture clean plate. */
+  hideOrangeScrollGuide?: boolean;
 };
 
 export default function ServicesDecorLayers({
   scrollRootRef,
   priorityCapture = false,
-  hideOrangeDot = false,
+  hideOrangeScrollGuide = false,
 }: ServicesDecorLayersProps) {
   const pathRef = useRef<SVGPathElement>(null);
   const dotRef = useRef<SVGCircleElement>(null);
@@ -67,7 +67,7 @@ export default function ServicesDecorLayers({
     const semiDryLayer = semiDryRef.current;
     const curedLayer = curedRef.current;
     if (!section || !path || !semiDryLayer || !curedLayer) return;
-    if (!hideOrangeDot && !dot) return;
+    if (!hideOrangeScrollGuide && !dot) return;
 
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
@@ -160,7 +160,7 @@ export default function ServicesDecorLayers({
       window.removeEventListener("resize", scheduleTick);
       if (rafId != null) window.cancelAnimationFrame(rafId);
     };
-  }, [hideOrangeDot, scrollRootRef]);
+  }, [hideOrangeScrollGuide, scrollRootRef]);
 
   const wetColumns = [0, 1, 2, 3].map((col) => buildColumnStack(WET_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
   const semiDryColumns = [0, 1, 2, 3].map((col) => buildColumnStack(SEMI_DRY_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
@@ -267,8 +267,9 @@ export default function ServicesDecorLayers({
           strokeDasharray="14 10"
           strokeLinecap="round"
           opacity="0.25"
+          visibility={hideOrangeScrollGuide ? "hidden" : "visible"}
         />
-        {!hideOrangeDot ? <circle ref={dotRef} r="10" fill="#F47B20" opacity="0" /> : null}
+        {!hideOrangeScrollGuide ? <circle ref={dotRef} r="10" fill="#F47B20" opacity="0" /> : null}
       </svg>
     </>
   );

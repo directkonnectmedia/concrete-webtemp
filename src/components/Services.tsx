@@ -51,9 +51,17 @@ const SNAKE_D = `M 900 500
 const WHITE_VEIL_MASK_STROKE = 195;
 /** Blur radius; darker-composite keeps inner cutout crisp while fog fades outward */
 const WHITE_VEIL_MASK_FEATHER = 38;
+/** Extra width (each side of path) for outer veil-side fade only; does not shrink the core hole */
+const WHITE_VEIL_EDGE_HALO_OUTSET = 58;
+/** Wider soft ring: more transparent near outline, solid farther into the veil */
+const WHITE_VEIL_EDGE_HALO_FEATHER = 48;
+const WHITE_VEIL_EDGE_HALO_STROKE_OPACITY = 0.44;
+const WHITE_VEIL_EDGE_HALO_STROKE = WHITE_VEIL_MASK_STROKE + 2 * WHITE_VEIL_EDGE_HALO_OUTSET;
 const WHITE_VEIL_MASK_ID = "services-white-veil-mask";
 const WHITE_VEIL_MASK_BLUR_FILTER_ID = `${WHITE_VEIL_MASK_ID}-blur`;
+const WHITE_VEIL_MASK_HALO_FILTER_ID = `${WHITE_VEIL_MASK_ID}-halo-blur`;
 const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 7);
+const WHITE_VEIL_MASK_HALO_FILTER_PAD = Math.ceil(WHITE_VEIL_EDGE_HALO_FEATHER * 8);
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
@@ -82,6 +90,7 @@ export default function Services() {
   const semiDryRef = useRef<HTMLDivElement>(null);
   const curedRef = useRef<HTMLDivElement>(null);
   const maskHolePathRef = useRef<SVGPathElement>(null);
+  const maskHoleHaloRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -90,7 +99,8 @@ export default function Services() {
     const semiDryLayer = semiDryRef.current;
     const curedLayer = curedRef.current;
     const maskHolePath = maskHolePathRef.current;
-    if (!section || !path || !dot || !semiDryLayer || !curedLayer || !maskHolePath) return;
+    const maskHoleHalo = maskHoleHaloRef.current;
+    if (!section || !path || !dot || !semiDryLayer || !curedLayer || !maskHolePath || !maskHoleHalo) return;
 
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
@@ -100,6 +110,9 @@ export default function Services() {
 
     maskHolePath.style.strokeDasharray = `${totalLength}`;
     maskHolePath.style.strokeDashoffset = `${totalLength}`;
+
+    maskHoleHalo.style.strokeDasharray = `${totalLength}`;
+    maskHoleHalo.style.strokeDashoffset = `${totalLength}`;
 
     const SAMPLES = 500;
     const yToLength: { y: number; len: number }[] = [];
@@ -137,6 +150,7 @@ export default function Services() {
       const dashOffset = `${totalLength - len}`;
       path.style.strokeDashoffset = dashOffset;
       maskHolePath.style.strokeDashoffset = dashOffset;
+      maskHoleHalo.style.strokeDashoffset = dashOffset;
 
       const pt = path.getPointAtLength(len);
       dot.setAttribute("cx", `${pt.x}`);
@@ -274,6 +288,17 @@ export default function Services() {
             <feGaussianBlur in="SourceGraphic" stdDeviation={WHITE_VEIL_MASK_FEATHER} result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="darker" />
           </filter>
+          <filter
+            id={WHITE_VEIL_MASK_HALO_FILTER_ID}
+            x={-WHITE_VEIL_MASK_HALO_FILTER_PAD}
+            y={-WHITE_VEIL_MASK_HALO_FILTER_PAD}
+            width={VIEWBOX_W + WHITE_VEIL_MASK_HALO_FILTER_PAD * 2}
+            height={VIEWBOX_H + WHITE_VEIL_MASK_HALO_FILTER_PAD * 2}
+            filterUnits="userSpaceOnUse"
+            colorInterpolationFilters="sRGB"
+          >
+            <feGaussianBlur in="SourceGraphic" stdDeviation={WHITE_VEIL_EDGE_HALO_FEATHER} />
+          </filter>
           <mask
             id={WHITE_VEIL_MASK_ID}
             maskUnits="userSpaceOnUse"
@@ -292,6 +317,17 @@ export default function Services() {
               strokeLinecap="round"
               strokeLinejoin="round"
               filter={`url(#${WHITE_VEIL_MASK_BLUR_FILTER_ID})`}
+            />
+            <path
+              ref={maskHoleHaloRef}
+              d={SNAKE_D}
+              fill="none"
+              stroke="black"
+              strokeWidth={WHITE_VEIL_EDGE_HALO_STROKE}
+              strokeOpacity={WHITE_VEIL_EDGE_HALO_STROKE_OPACITY}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              filter={`url(#${WHITE_VEIL_MASK_HALO_FILTER_ID})`}
             />
           </mask>
         </defs>

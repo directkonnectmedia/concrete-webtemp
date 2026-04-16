@@ -50,10 +50,10 @@ const SNAKE_D = `M 900 500
 
 const WHITE_VEIL_MASK_STROKE = 195;
 /** Blur radius; darker-composite keeps inner cutout crisp while fog fades outward */
-const WHITE_VEIL_MASK_FEATHER = 28;
+const WHITE_VEIL_MASK_FEATHER = 38;
 const WHITE_VEIL_MASK_ID = "services-white-veil-mask";
 const WHITE_VEIL_MASK_BLUR_FILTER_ID = `${WHITE_VEIL_MASK_ID}-blur`;
-const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 6);
+const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 7);
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];

@@ -137,7 +137,7 @@ export default function Services() {
       semiDryLayer.style.maskImage = semiDryMask;
       semiDryLayer.style.webkitMaskImage = semiDryMask;
 
-      const curedEdge = Math.min(Math.max(dotPct - FORCE_FIELD, 0), 100);
+      const curedEdge = Math.min(Math.max(dotPct - 5, 0), 100);
       const curedMask = `linear-gradient(to bottom, black ${curedEdge}%, transparent ${curedEdge + 4}%)`;
       curedLayer.style.maskImage = curedMask;
       curedLayer.style.webkitMaskImage = curedMask;

@@ -53,17 +53,12 @@ export default function Services() {
         <source src="/services-showcase.mp4" type="video/mp4" />
       </video>
 
-      <div
-        className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-white/90 via-white/55 to-white/35"
-        aria-hidden
-      />
-
       <div className="relative z-10 mx-auto max-w-7xl px-6">
         <div className="relative z-10 mb-12 text-center reveal md:mb-16">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-orange">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-orange [text-shadow:0_1px_2px_rgba(255,255,255,0.95),0_0_12px_rgba(255,255,255,0.7)]">
             Why Solution Concrete?
           </p>
-          <h2 className="mx-auto max-w-3xl font-[var(--font-heading)] text-3xl font-extrabold leading-tight text-navy md:text-5xl">
+          <h2 className="mx-auto max-w-3xl font-[var(--font-heading)] text-3xl font-extrabold leading-tight text-navy md:text-5xl [text-shadow:0_1px_3px_rgba(255,255,255,0.95),0_0_24px_rgba(255,255,255,0.65)]">
             We&apos;re ready to show you why we&apos;re the West Valley&apos;s
             top concrete choice.
           </h2>
@@ -126,11 +121,8 @@ export default function Services() {
       </div>
 
       <div className="relative z-20 wave-divider">
-        <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
-          <path
-            d="M0,40 C300,100 900,0 1200,60 L1200,120 L0,120 Z"
-            fill="#FFFFFF"
-          />
+        <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+          <path d="M0,0 H1200 V80 H0 Z" fill="#FFFFFF" />
         </svg>
       </div>
     </section>

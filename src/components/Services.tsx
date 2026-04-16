@@ -79,6 +79,9 @@ const COLUMN_SEQUENCES = [
   [3, 2, 1, 0, 1, 3, 0, 2, 2, 0, 1, 3, 0, 1, 2, 3],
 ];
 
+/** Fewer tiles = less decode/composite work; columns still fill the section height */
+const CONCRETE_TILES_PER_COLUMN = 12;
+
 function buildColumnStack(photos: string[], colIndex: number, count: number) {
   const seq = COLUMN_SEQUENCES[colIndex % COLUMN_SEQUENCES.length];
   const stack: string[] = [];
@@ -119,7 +122,7 @@ export default function Services() {
     maskHoleHalo.style.strokeDasharray = `${totalLength}`;
     maskHoleHalo.style.strokeDashoffset = `${totalLength}`;
 
-    const SAMPLES = 500;
+    const SAMPLES = 256;
     const yToLength: { y: number; len: number }[] = [];
     for (let i = 0; i <= SAMPLES; i++) {
       const len = (i / SAMPLES) * totalLength;
@@ -140,11 +143,18 @@ export default function Services() {
       return closest.len;
     }
 
-    const onScroll = () => {
+    let rafId: number | null = null;
+    let lastSemiMask = "";
+    let lastCuredMask = "";
+
+    const tick = () => {
+      rafId = null;
       const rect = section.getBoundingClientRect();
       const windowHeight = window.innerHeight;
-      const viewportCenter = windowHeight / 2;
+      // Skip heavy mask/SVG work while far off-screen (scroll fires for whole document)
+      if (rect.bottom < -100 || rect.top > windowHeight + 100) return;
 
+      const viewportCenter = windowHeight / 2;
       const sectionY = viewportCenter - rect.top;
       const svgY = (sectionY / rect.height) * VIEWBOX_H;
       const clampedY = Math.min(Math.max(svgY, yToLength[0].y), yToLength[yToLength.length - 1].y);
@@ -167,25 +177,43 @@ export default function Services() {
       const dotPct = (pt.y / VIEWBOX_H) * 100;
 
       const dryEdge = Math.min(Math.max(dotPct + semiDryLeadPct, 0), 100);
-      const semiDryMask = `linear-gradient(to bottom, black ${dryEdge}%, transparent ${dryEdge + 4}%)`;
-      semiDryLayer.style.maskImage = semiDryMask;
-      semiDryLayer.style.webkitMaskImage = semiDryMask;
-
       const curedEdge = Math.min(Math.max(dotPct - curedTrailPct, 0), 100);
-      const curedMask = `linear-gradient(to bottom, black ${curedEdge}%, transparent ${curedEdge + 4}%)`;
-      curedLayer.style.maskImage = curedMask;
-      curedLayer.style.webkitMaskImage = curedMask;
+      // Quantize so we don't rewrite mask strings every sub-pixel scroll
+      const dryQ = Math.round(dryEdge * 4) / 4;
+      const curedQ = Math.round(curedEdge * 4) / 4;
+      const semiDryMask = `linear-gradient(to bottom, black ${dryQ}%, transparent ${dryQ + 4}%)`;
+      if (semiDryMask !== lastSemiMask) {
+        lastSemiMask = semiDryMask;
+        semiDryLayer.style.maskImage = semiDryMask;
+        semiDryLayer.style.webkitMaskImage = semiDryMask;
+      }
+      const curedMask = `linear-gradient(to bottom, black ${curedQ}%, transparent ${curedQ + 4}%)`;
+      if (curedMask !== lastCuredMask) {
+        lastCuredMask = curedMask;
+        curedLayer.style.maskImage = curedMask;
+        curedLayer.style.webkitMaskImage = curedMask;
+      }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+    const scheduleTick = () => {
+      if (rafId != null) return;
+      rafId = window.requestAnimationFrame(tick);
+    };
 
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", scheduleTick, { passive: true });
+    window.addEventListener("resize", scheduleTick, { passive: true });
+    tick();
+
+    return () => {
+      window.removeEventListener("scroll", scheduleTick);
+      window.removeEventListener("resize", scheduleTick);
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const wetColumns = [0, 1, 2, 3].map((col) => buildColumnStack(WET_PHOTOS, col, 16));
-  const semiDryColumns = [0, 1, 2, 3].map((col) => buildColumnStack(SEMI_DRY_PHOTOS, col, 16));
-  const curedColumns = [0, 1, 2, 3].map((col) => buildColumnStack(CURED_PHOTOS, col, 16));
+  const wetColumns = [0, 1, 2, 3].map((col) => buildColumnStack(WET_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
+  const semiDryColumns = [0, 1, 2, 3].map((col) => buildColumnStack(SEMI_DRY_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
+  const curedColumns = [0, 1, 2, 3].map((col) => buildColumnStack(CURED_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
 
   return (
     <section

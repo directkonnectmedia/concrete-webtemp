@@ -137,7 +137,7 @@ export default function Services() {
       semiDryLayer.style.maskImage = semiDryMask;
       semiDryLayer.style.webkitMaskImage = semiDryMask;
 
-      const curedEdge = Math.min(Math.max(dotPct - FORCE_FIELD, 0), 100);
+      const curedEdge = Math.min(Math.max(dotPct - 6, 0), 100);
       const curedMask = `linear-gradient(to bottom, black ${curedEdge}%, transparent ${curedEdge + 4}%)`;
       curedLayer.style.maskImage = curedMask;
       curedLayer.style.webkitMaskImage = curedMask;
@@ -213,7 +213,12 @@ export default function Services() {
         ref={curedRef}
         className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
         aria-hidden="true"
-        style={{ zIndex: 0, maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)" }}
+        style={{
+          zIndex: 0,
+          filter: "brightness(1.1)",
+          maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
+        }}
       >
         <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
           {curedColumns.map((stack, colIdx) => (

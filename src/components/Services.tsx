@@ -52,10 +52,15 @@ const WHITE_VEIL_MASK_STROKE = 195;
 /** Blur radius; darker-composite keeps inner cutout crisp while fog fades outward */
 const WHITE_VEIL_MASK_FEATHER = 38;
 /** Extra width (each side of path) for outer veil-side fade only; does not shrink the core hole */
-const WHITE_VEIL_EDGE_HALO_OUTSET = 58;
+/** +20% vs prior halo (outset / blur / stroke opacity) */
+const WHITE_VEIL_EDGE_HALO_INTENSITY = 1.2;
+const WHITE_VEIL_EDGE_HALO_OUTSET = Math.round(58 * WHITE_VEIL_EDGE_HALO_INTENSITY);
 /** Wider soft ring: more transparent near outline, solid farther into the veil */
-const WHITE_VEIL_EDGE_HALO_FEATHER = 48;
-const WHITE_VEIL_EDGE_HALO_STROKE_OPACITY = 0.44;
+const WHITE_VEIL_EDGE_HALO_FEATHER = Math.round(48 * WHITE_VEIL_EDGE_HALO_INTENSITY);
+const WHITE_VEIL_EDGE_HALO_STROKE_OPACITY = Math.min(
+  0.72,
+  Number((0.44 * WHITE_VEIL_EDGE_HALO_INTENSITY).toFixed(3)),
+);
 const WHITE_VEIL_EDGE_HALO_STROKE = WHITE_VEIL_MASK_STROKE + 2 * WHITE_VEIL_EDGE_HALO_OUTSET;
 const WHITE_VEIL_MASK_ID = "services-white-veil-mask";
 const WHITE_VEIL_MASK_BLUR_FILTER_ID = `${WHITE_VEIL_MASK_ID}-blur`;

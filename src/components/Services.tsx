@@ -50,12 +50,18 @@ const SNAKE_D = `M 900 500
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 
-const COLUMN_SEQUENCE = [0, 1, 2, 3, 2, 0, 3, 1, 1, 3, 0, 2, 3, 2, 1, 0];
+const COLUMN_SEQUENCES = [
+  [0, 1, 2, 3, 2, 0, 3, 1, 1, 3, 0, 2, 3, 2, 1, 0],
+  [1, 3, 0, 2, 3, 1, 2, 0, 0, 2, 3, 1, 2, 0, 3, 1],
+  [2, 0, 3, 1, 0, 2, 1, 3, 3, 1, 2, 0, 1, 3, 0, 2],
+  [3, 2, 1, 0, 1, 3, 0, 2, 2, 0, 1, 3, 0, 1, 2, 3],
+];
 
-function buildColumnStack(repeatCount: number) {
+function buildColumnStack(colIndex: number, count: number) {
+  const seq = COLUMN_SEQUENCES[colIndex % COLUMN_SEQUENCES.length];
   const stack: string[] = [];
-  for (let i = 0; i < repeatCount; i++) {
-    stack.push(WET_PHOTOS[COLUMN_SEQUENCE[i % COLUMN_SEQUENCE.length]]);
+  for (let i = 0; i < count; i++) {
+    stack.push(WET_PHOTOS[seq[i % seq.length]]);
   }
   return stack;
 }
@@ -101,7 +107,7 @@ export default function Services() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const columnStack = buildColumnStack(16);
+  const columns = [0, 1, 2, 3].map((col) => buildColumnStack(col, 16));
 
   return (
     <section
@@ -109,22 +115,28 @@ export default function Services() {
       ref={sectionRef}
       className="relative bg-gray-light pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden"
     >
-      {/* Single column prototype — stacked Lego-style, desktop only */}
+      {/* Wet concrete background — 4 Lego-stacked columns, desktop only */}
       <div
-        className="absolute top-0 left-0 w-1/4 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
+        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none overflow-hidden"
         aria-hidden="true"
-        style={{ zIndex: 0, fontSize: 0, lineHeight: 0 }}
+        style={{ zIndex: 0 }}
       >
-        {columnStack.map((src, i) => (
-          <img
-            key={i}
-            src={src}
-            alt=""
-            className="w-full block"
-            loading="lazy"
-            draggable={false}
-          />
-        ))}
+        <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
+          {columns.map((stack, colIdx) => (
+            <div key={colIdx} className="w-1/4 flex-shrink-0">
+              {stack.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  className="w-full block"
+                  loading="lazy"
+                  draggable={false}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6">

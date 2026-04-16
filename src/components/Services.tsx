@@ -44,7 +44,9 @@ export default function Services() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const tilesRef = useRef<HTMLDivElement>(null);
-  const tileEls = useRef<HTMLDivElement[]>([]);
+  const tileRows = useRef<HTMLDivElement[][]>([]);
+
+  const TILES_PER_ROW = 4;
 
   const buildTiles = useCallback(() => {
     const section = sectionRef.current;
@@ -56,7 +58,7 @@ export default function Services() {
     if (totalLength === 0) return;
 
     container.innerHTML = "";
-    tileEls.current = [];
+    tileRows.current = [];
 
     const sectionRect = section.getBoundingClientRect();
     const scaleX = sectionRect.width / VIEWBOX_W;
@@ -69,25 +71,37 @@ export default function Services() {
       const pt = path.getPointAtLength(dist);
       const ptNext = path.getPointAtLength(Math.min(dist + 2, totalLength));
 
-      const angle = Math.atan2(ptNext.y - pt.y, ptNext.x - pt.x) * (180 / Math.PI);
+      const angleRad = Math.atan2(ptNext.y - pt.y, ptNext.x - pt.x);
+      const angleDeg = angleRad * (180 / Math.PI);
+      const perpRad = angleRad + Math.PI / 2;
 
       const px = pt.x * scaleX;
       const py = pt.y * scaleY;
 
-      const tile = document.createElement("div");
-      tile.style.cssText = `
-        position:absolute;
-        left:${px}px;
-        top:${py}px;
-        width:${TILE_W}px;
-        height:${TILE_H}px;
-        background:url(/concrete-tile.png) center/cover no-repeat;
-        transform:translate(-50%,-50%) rotate(${angle}deg);
-        opacity:0;
-        will-change:opacity;
-      `;
-      container.appendChild(tile);
-      tileEls.current.push(tile);
+      const row: HTMLDivElement[] = [];
+
+      for (let t = 0; t < TILES_PER_ROW; t++) {
+        const offset = (t - (TILES_PER_ROW - 1) / 2) * TILE_H;
+        const ox = Math.cos(perpRad) * offset * scaleX;
+        const oy = Math.sin(perpRad) * offset * scaleY;
+
+        const tile = document.createElement("div");
+        tile.style.cssText = `
+          position:absolute;
+          left:${px + ox}px;
+          top:${py + oy}px;
+          width:${TILE_W}px;
+          height:${TILE_H}px;
+          background:url(/concrete-tile.png) center/cover no-repeat;
+          transform:translate(-50%,-50%) rotate(${angleDeg + 90}deg);
+          opacity:0;
+          will-change:opacity;
+        `;
+        container.appendChild(tile);
+        row.push(tile);
+      }
+
+      tileRows.current.push(row);
     }
   }, []);
 
@@ -113,12 +127,15 @@ export default function Services() {
       const scrollable = sectionHeight - windowHeight * 0.4;
       const progress = Math.min(Math.max(-start / scrollable, 0), 1);
 
-      const tiles = tileEls.current;
-      const total = tiles.length;
+      const rows = tileRows.current;
+      const total = rows.length;
       const revealIdx = Math.floor(progress * total);
 
       for (let i = 0; i < total; i++) {
-        tiles[i].style.opacity = i <= revealIdx ? "1" : "0";
+        const op = i <= revealIdx ? "1" : "0";
+        for (const tile of rows[i]) {
+          tile.style.opacity = op;
+        }
       }
     };
 

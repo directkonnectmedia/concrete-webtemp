@@ -50,10 +50,13 @@ const SNAKE_D = `M 900 500
 
 const WHITE_VEIL_MASK_STROKE = 195;
 /** Blur radius; darker-composite keeps inner cutout crisp while fog fades outward */
-const WHITE_VEIL_MASK_FEATHER = 28;
+const WHITE_VEIL_MASK_FEATHER = 62;
 const WHITE_VEIL_MASK_ID = "services-white-veil-mask";
 const WHITE_VEIL_MASK_BLUR_FILTER_ID = `${WHITE_VEIL_MASK_ID}-blur`;
-const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 6);
+const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 8);
+/** Veil tint over concrete (0–1). Lower = more see-through “fog”; matches --color-gray-light */
+const WHITE_VEIL_FILL_ALPHA = 0.48;
+const WHITE_VEIL_FILL = `rgba(248, 249, 250, ${WHITE_VEIL_FILL_ALPHA})`;
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
@@ -298,7 +301,7 @@ export default function Services() {
         <rect
           width={VIEWBOX_W}
           height={VIEWBOX_H}
-          fill="var(--color-gray-light)"
+          fill={WHITE_VEIL_FILL}
           mask={`url(#${WHITE_VEIL_MASK_ID})`}
         />
       </svg>

@@ -46,6 +46,8 @@ export default function Services() {
     if (!section || !path || !dot) return;
 
     const totalLength = path.getTotalLength();
+    if (totalLength === 0) return;
+
     path.style.strokeDasharray = `${totalLength}`;
     path.style.strokeDashoffset = `${totalLength}`;
 
@@ -74,7 +76,11 @@ export default function Services() {
   }, []);
 
   return (
-    <section id="services" ref={sectionRef} className="relative bg-gray-light pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden">
+    <section
+      id="services"
+      ref={sectionRef}
+      className="relative bg-gray-light pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden"
+    >
       <div className="max-w-7xl mx-auto px-6">
         {/* Section header */}
         <div className="text-center mb-20 md:mb-28 reveal">
@@ -82,30 +88,43 @@ export default function Services() {
             Why Solution Concrete?
           </p>
           <h2 className="font-[var(--font-heading)] font-extrabold text-3xl md:text-5xl text-navy leading-tight max-w-3xl mx-auto">
-            We&apos;re ready to show you why we&apos;re the West Valley&apos;s top concrete choice.
+            We&apos;re ready to show you why we&apos;re the West Valley&apos;s
+            top concrete choice.
           </h2>
         </div>
 
-        {/* SVG map path behind cards */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        {/* SVG snake line — visible on desktop only via opacity */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-0 lg:opacity-100 transition-opacity"
+          aria-hidden="true"
+        >
           <svg
             className="absolute top-0 left-0 w-full h-full"
-            viewBox="0 0 1200 3200"
+            viewBox="0 0 1200 4200"
             preserveAspectRatio="none"
             fill="none"
           >
             <path
               ref={pathRef}
-              d="M 600 100 C 900 200, 1000 400, 800 550 C 600 700, 200 650, 300 850 C 400 1050, 900 1000, 850 1200 C 800 1400, 200 1350, 350 1550 C 500 1750, 1000 1700, 850 1900 C 700 2100, 200 2050, 400 2250 C 600 2450, 1000 2400, 800 2600 C 600 2800, 300 2900, 600 3100"
+              d="M 900 500
+                 C 1100 600, 1100 850, 900 1000
+                 C 700 1150, 300 1100, 200 1250
+                 C 100 1400, 100 1650, 200 1800
+                 C 350 1950, 800 1900, 950 2050
+                 C 1100 2200, 1100 2450, 950 2600
+                 C 750 2750, 300 2700, 200 2850
+                 C 100 3000, 100 3250, 200 3400
+                 C 350 3550, 800 3500, 950 3650
+                 C 1100 3800, 1100 4000, 900 4150"
               stroke="#F47B20"
-              strokeWidth="3"
-              strokeDasharray="12 8"
+              strokeWidth="4"
+              strokeDasharray="14 10"
               strokeLinecap="round"
-              opacity="0.3"
+              opacity="0.25"
             />
             <circle
               ref={dotRef}
-              r="8"
+              r="10"
               fill="#F47B20"
               opacity="0"
               style={{ transition: "opacity 0.3s" }}
@@ -113,19 +132,33 @@ export default function Services() {
           </svg>
         </div>
 
-        {/* Service cards */}
-        <div className="relative z-10 space-y-24 md:space-y-36">
+        {/* Service cards — staggered left / right */}
+        <div className="relative z-10 space-y-20 md:space-y-32 lg:space-y-40">
           {services.map((svc, i) => {
-            const isOdd = i % 2 === 0;
+            const isLeft = i % 2 === 0;
             return (
               <div
                 key={i}
-                className={`relative flex flex-col ${isOdd ? "lg:flex-row" : "lg:flex-row-reverse"} items-center gap-0 lg:gap-0`}
+                className={`relative w-full lg:w-[58%] ${
+                  isLeft ? "lg:mr-auto" : "lg:ml-auto"
+                } ${isLeft ? "reveal-left" : "reveal-right"}`}
               >
-                {/* Info card */}
+                {/* Photo */}
+                <div className="rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img
+                      src={svc.photo}
+                      alt={svc.alt}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+
+                {/* Info card overlapping bottom of photo */}
                 <div
-                  className={`${isOdd ? "reveal-left" : "reveal-right"} relative z-20 w-full lg:w-[480px] flex-shrink-0 bg-gray-light/90 backdrop-blur-sm rounded-2xl p-8 md:p-10 shadow-xl border border-gray/50 ${
-                    isOdd ? "lg:-mr-16" : "lg:-ml-16"
+                  className={`relative z-10 mx-4 -mt-20 lg:-mt-24 lg:mx-0 bg-gray-light/95 backdrop-blur-sm rounded-2xl p-8 md:p-10 shadow-xl border border-gray/50 ${
+                    isLeft ? "lg:ml-6 lg:mr-12" : "lg:mr-6 lg:ml-12"
                   }`}
                 >
                   <p className="text-orange font-semibold text-xs tracking-widest uppercase mb-4">
@@ -144,20 +177,6 @@ export default function Services() {
                     Get a Free Quote
                   </a>
                 </div>
-
-                {/* Photo */}
-                <div
-                  className={`${isOdd ? "reveal-right" : "reveal-left"} relative w-full lg:w-[600px] flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl mt-[-40px] lg:mt-0`}
-                >
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img
-                      src={svc.photo}
-                      alt={svc.alt}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
               </div>
             );
           })}
@@ -167,7 +186,10 @@ export default function Services() {
       {/* Wave divider */}
       <div className="wave-divider">
         <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
-          <path d="M0,40 C300,100 900,0 1200,60 L1200,120 L0,120 Z" fill="#FFFFFF" />
+          <path
+            d="M0,40 C300,100 900,0 1200,60 L1200,120 L0,120 Z"
+            fill="#FFFFFF"
+          />
         </svg>
       </div>
     </section>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 const services = [
   {
@@ -36,87 +36,56 @@ const services = [
 
 const VIEWBOX_W = 1200;
 const VIEWBOX_H = 4200;
-const TILE_SPACING = 10;
-const TILE_W = 70;
-const TILE_H = 12;
+
+const SNAKE_D = `M 900 500
+   C 1100 600, 1100 850, 900 1000
+   C 700 1150, 300 1100, 200 1250
+   C 100 1400, 100 1650, 200 1800
+   C 350 1950, 800 1900, 950 2050
+   C 1100 2200, 1100 2450, 950 2600
+   C 750 2750, 300 2700, 200 2850
+   C 100 3000, 100 3250, 200 3400
+   C 350 3550, 800 3500, 950 3650
+   C 1100 3800, 1100 4000, 900 4150`;
+
+const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
+
+const GRID_PERMUTATIONS = [
+  [0, 1, 2, 3],
+  [2, 0, 3, 1],
+  [3, 2, 1, 0],
+  [1, 3, 0, 2],
+  [0, 2, 3, 1],
+  [3, 1, 0, 2],
+  [2, 3, 1, 0],
+  [1, 0, 2, 3],
+];
+
+function buildGridRows(rowCount: number) {
+  const rows: string[][] = [];
+  for (let r = 0; r < rowCount; r++) {
+    const perm = GRID_PERMUTATIONS[r % GRID_PERMUTATIONS.length];
+    rows.push(perm.map((idx) => WET_PHOTOS[idx]));
+  }
+  return rows;
+}
 
 export default function Services() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const tilesRef = useRef<HTMLDivElement>(null);
-  const tileRows = useRef<HTMLDivElement[][]>([]);
-
-  const TILES_PER_ROW = 4;
-
-  const buildTiles = useCallback(() => {
-    const section = sectionRef.current;
-    const path = pathRef.current;
-    const container = tilesRef.current;
-    if (!section || !path || !container) return;
-
-    const totalLength = path.getTotalLength();
-    if (totalLength === 0) return;
-
-    container.innerHTML = "";
-    tileRows.current = [];
-
-    const sectionRect = section.getBoundingClientRect();
-    const scaleX = sectionRect.width / VIEWBOX_W;
-    const scaleY = sectionRect.height / VIEWBOX_H;
-
-    const count = Math.floor(totalLength / TILE_SPACING);
-
-    for (let i = 0; i <= count; i++) {
-      const dist = i * TILE_SPACING;
-      const pt = path.getPointAtLength(dist);
-      const ptNext = path.getPointAtLength(Math.min(dist + 2, totalLength));
-
-      const angleRad = Math.atan2(ptNext.y - pt.y, ptNext.x - pt.x);
-      const angleDeg = angleRad * (180 / Math.PI);
-      const perpRad = angleRad + Math.PI / 2;
-
-      const px = pt.x * scaleX;
-      const py = pt.y * scaleY;
-
-      const row: HTMLDivElement[] = [];
-
-      for (let t = 0; t < TILES_PER_ROW; t++) {
-        const offset = (t - (TILES_PER_ROW - 1) / 2) * TILE_H;
-        const ox = Math.cos(perpRad) * offset * scaleX;
-        const oy = Math.sin(perpRad) * offset * scaleY;
-
-        const tile = document.createElement("div");
-        tile.style.cssText = `
-          position:absolute;
-          left:${px + ox}px;
-          top:${py + oy}px;
-          width:${TILE_W}px;
-          height:${TILE_H}px;
-          background:url(/concrete-tile.png) center/cover no-repeat;
-          transform:translate(-50%,-50%) rotate(${angleDeg + 90}deg);
-          opacity:0;
-          will-change:opacity;
-        `;
-        container.appendChild(tile);
-        row.push(tile);
-      }
-
-      tileRows.current.push(row);
-    }
-  }, []);
+  const dotRef = useRef<SVGCircleElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     const path = pathRef.current;
-    if (!section || !path) return;
+    const dot = dotRef.current;
+    if (!section || !path || !dot) return;
 
-    buildTiles();
+    const totalLength = path.getTotalLength();
+    if (totalLength === 0) return;
 
-    let resizeTimer: ReturnType<typeof setTimeout>;
-    const onResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(buildTiles, 200);
-    };
+    path.style.strokeDasharray = `${totalLength}`;
+    path.style.strokeDashoffset = `${totalLength}`;
 
     const onScroll = () => {
       const rect = section.getBoundingClientRect();
@@ -127,28 +96,22 @@ export default function Services() {
       const scrollable = sectionHeight - windowHeight * 0.4;
       const progress = Math.min(Math.max(-start / scrollable, 0), 1);
 
-      const rows = tileRows.current;
-      const total = rows.length;
-      const revealIdx = Math.floor(progress * total);
+      const drawLength = totalLength * (1 - progress);
+      path.style.strokeDashoffset = `${drawLength}`;
 
-      for (let i = 0; i < total; i++) {
-        const op = i <= revealIdx ? "1" : "0";
-        for (const tile of rows[i]) {
-          tile.style.opacity = op;
-        }
-      }
+      const pt = path.getPointAtLength(progress * totalLength);
+      dot.setAttribute("cx", `${pt.x}`);
+      dot.setAttribute("cy", `${pt.y}`);
+      dot.style.opacity = progress > 0.005 ? "1" : "0";
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
     onScroll();
 
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-      clearTimeout(resizeTimer);
-    };
-  }, [buildTiles]);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const gridRows = buildGridRows(12);
 
   return (
     <section
@@ -156,9 +119,31 @@ export default function Services() {
       ref={sectionRef}
       className="relative bg-gray-light pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden"
     >
+      {/* Wet concrete background grid — desktop only */}
+      <div
+        className="absolute inset-0 opacity-0 lg:opacity-100 pointer-events-none"
+        aria-hidden="true"
+        style={{ zIndex: 0 }}
+      >
+        <div className="w-full h-full grid grid-cols-4">
+          {gridRows.flatMap((row, rIdx) =>
+            row.map((src, cIdx) => (
+              <img
+                key={`${rIdx}-${cIdx}`}
+                src={src}
+                alt=""
+                className="w-full h-auto block"
+                loading="lazy"
+                draggable={false}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-6">
         {/* Section header */}
-        <div className="text-center mb-20 md:mb-28 reveal">
+        <div className="text-center mb-20 md:mb-28 reveal relative z-10">
           <p className="text-orange font-semibold text-sm tracking-widest uppercase mb-3">
             Why Solution Concrete?
           </p>
@@ -168,36 +153,26 @@ export default function Services() {
           </h2>
         </div>
 
-        {/* Invisible SVG path used as the mathematical guide for tile placement */}
+        {/* Animated orange snake line */}
         <svg
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
+          className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-0 lg:opacity-100"
           viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
           preserveAspectRatio="none"
           fill="none"
           aria-hidden="true"
-          style={{ opacity: 0 }}
+          style={{ zIndex: 1 }}
         >
           <path
             ref={pathRef}
-            d="M 900 500
-               C 1100 600, 1100 850, 900 1000
-               C 700 1150, 300 1100, 200 1250
-               C 100 1400, 100 1650, 200 1800
-               C 350 1950, 800 1900, 950 2050
-               C 1100 2200, 1100 2450, 950 2600
-               C 750 2750, 300 2700, 200 2850
-               C 100 3000, 100 3250, 200 3400
-               C 350 3550, 800 3500, 950 3650
-               C 1100 3800, 1100 4000, 900 4150"
+            d={SNAKE_D}
+            stroke="#F47B20"
+            strokeWidth="4"
+            strokeDasharray="14 10"
+            strokeLinecap="round"
+            opacity="0.25"
           />
+          <circle ref={dotRef} r="10" fill="#F47B20" opacity="0" />
         </svg>
-
-        {/* Tile container — concrete tiles placed along the path */}
-        <div
-          ref={tilesRef}
-          className="absolute inset-0 pointer-events-none opacity-0 lg:opacity-100"
-          aria-hidden="true"
-        />
 
         {/* Service cards — staggered left / right */}
         <div className="relative z-10 space-y-20 md:space-y-32 lg:space-y-40">

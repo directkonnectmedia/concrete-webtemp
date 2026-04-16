@@ -68,6 +68,10 @@ const WHITE_VEIL_MASK_HALO_FILTER_ID = `${WHITE_VEIL_MASK_ID}-halo-blur`;
 const WHITE_VEIL_MASK_FILTER_PAD = Math.ceil(WHITE_VEIL_MASK_FEATHER * 7);
 const WHITE_VEIL_MASK_HALO_FILTER_PAD = Math.ceil(WHITE_VEIL_EDGE_HALO_FEATHER * 8);
 
+/** Veil only strong in lower section; soft ramp so it reads as “rising from the bottom” (CSS alpha mask) */
+const WHITE_VEIL_VERTICAL_FADE =
+  "linear-gradient(to bottom, transparent 0%, transparent 30%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.65) 48%, rgba(0,0,0,0.95) 55%, #000 62%, #000 100%)";
+
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
 const CURED_PHOTOS = ["/concrete/cured/C1.png", "/concrete/cured/C2.png", "/concrete/cured/C3.png", "/concrete/cured/C4.png"];
@@ -298,13 +302,21 @@ export default function Services() {
         </div>
       </div>
 
-      {/* Layer 4: Site-color veil — full snake hole from load; orange line still draws with scroll */}
+      {/* Layer 4: Site-color veil — full snake hole; fades in from ~bottom half via vertical CSS mask */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none opacity-0 lg:opacity-100"
         viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
         preserveAspectRatio="none"
         aria-hidden="true"
-        style={{ zIndex: 1 }}
+        style={{
+          zIndex: 1,
+          maskImage: WHITE_VEIL_VERTICAL_FADE,
+          WebkitMaskImage: WHITE_VEIL_VERTICAL_FADE,
+          maskSize: "100% 100%",
+          WebkitMaskSize: "100% 100%",
+          maskRepeat: "no-repeat",
+          WebkitMaskRepeat: "no-repeat",
+        }}
       >
         <defs>
           <filter

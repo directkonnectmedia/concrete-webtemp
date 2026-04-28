@@ -43,9 +43,9 @@ export default function Services() {
     <section
       id="services"
       ref={sectionRef}
-      className="relative overflow-hidden bg-gray-light pb-32 pt-24 md:pb-40 md:pt-32"
+      className="relative overflow-hidden bg-[#d8d4d0] pb-32 pt-24 md:pb-40 md:pt-32"
     >
-      <ServicesDecorLayers scrollRootRef={sectionRef} />
+      <ServicesDecorLayers scrollRootRef={sectionRef} hideConcreteLayers />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6">
         {/* Section header */}

@@ -5,16 +5,34 @@ import { useEffect, useRef, type RefObject } from "react";
 export const SERVICES_VIEWBOX_W = 1200;
 export const SERVICES_VIEWBOX_H = 4200;
 
-export const SERVICES_SNAKE_D = `M 900 500
-   C 1100 600, 1100 850, 900 1000
-   C 700 1150, 300 1100, 200 1250
-   C 100 1400, 100 1650, 200 1800
-   C 350 1950, 800 1900, 950 2050
-   C 1100 2200, 1100 2450, 950 2600
-   C 750 2750, 300 2700, 200 2850
-   C 100 3000, 100 3250, 200 3400
-   C 350 3550, 800 3500, 950 3650
-   C 1100 3800, 1100 4000, 900 4150`;
+// Two parallel zigzag rails (~80 units apart) — read as the two edges of a sidewalk.
+export const SERVICES_SNAKE_D = `M 600 460
+   L 1050 760
+   L 150 1060
+   L 1050 1360
+   L 150 1660
+   L 1050 1960
+   L 150 2260
+   L 1050 2560
+   L 150 2860
+   L 1050 3160
+   L 150 3460
+   L 1050 3760
+   L 600 4110`;
+
+export const SERVICES_SNAKE_D_2 = `M 600 540
+   L 1050 840
+   L 150 1140
+   L 1050 1440
+   L 150 1740
+   L 1050 2040
+   L 150 2340
+   L 1050 2640
+   L 150 2940
+   L 1050 3240
+   L 150 3540
+   L 1050 3840
+   L 600 4190`;
 
 const WET_PHOTOS = ["/concrete/wet/A1.png", "/concrete/wet/A2.png", "/concrete/wet/A3.png", "/concrete/wet/A4.png"];
 const SEMI_DRY_PHOTOS = ["/concrete/semi-dry/B1.png", "/concrete/semi-dry/B2.png", "/concrete/semi-dry/B3.png", "/concrete/semi-dry/B4.png"];
@@ -44,15 +62,20 @@ export type ServicesDecorLayersProps = {
   priorityCapture?: boolean;
   /** Hide orange dashed path + dot (path stays in DOM for mask math). /services-capture clean plate. */
   hideOrangeScrollGuide?: boolean;
+  /** Hide the wet/semi-dry/cured concrete photo layers; keep only the orange path + dot. */
+  hideConcreteLayers?: boolean;
 };
 
 export default function ServicesDecorLayers({
   scrollRootRef,
   priorityCapture = false,
   hideOrangeScrollGuide = false,
+  hideConcreteLayers = false,
 }: ServicesDecorLayersProps) {
   const pathRef = useRef<SVGPathElement>(null);
+  const path2Ref = useRef<SVGPathElement>(null);
   const dotRef = useRef<SVGCircleElement>(null);
+  const dot2Ref = useRef<SVGCircleElement>(null);
   const semiDryRef = useRef<HTMLDivElement>(null);
   const curedRef = useRef<HTMLDivElement>(null);
 
@@ -63,10 +86,13 @@ export default function ServicesDecorLayers({
   useEffect(() => {
     const section = scrollRootRef.current;
     const path = pathRef.current;
+    const path2 = path2Ref.current;
     const dot = dotRef.current;
+    const dot2 = dot2Ref.current;
     const semiDryLayer = semiDryRef.current;
     const curedLayer = curedRef.current;
-    if (!section || !path || !semiDryLayer || !curedLayer) return;
+    if (!section || !path) return;
+    if (!hideConcreteLayers && (!semiDryLayer || !curedLayer)) return;
     if (!hideOrangeScrollGuide && !dot) return;
 
     const totalLength = path.getTotalLength();
@@ -74,6 +100,12 @@ export default function ServicesDecorLayers({
 
     path.style.strokeDasharray = `${totalLength}`;
     path.style.strokeDashoffset = `${totalLength}`;
+
+    const totalLength2 = path2 ? path2.getTotalLength() : 0;
+    if (path2 && totalLength2 > 0) {
+      path2.style.strokeDasharray = `${totalLength2}`;
+      path2.style.strokeDashoffset = `${totalLength2}`;
+    }
 
     const SAMPLES = 256;
     const yToLength: { y: number; len: number }[] = [];
@@ -99,29 +131,44 @@ export default function ServicesDecorLayers({
     let rafId: number | null = null;
     let lastSemiMask = "";
     let lastCuredMask = "";
+    let currentProgress = 0;
+    let targetProgress = 0;
+    // Lerp factor per frame (~60fps). Lower = smoother/slower follow, higher = snappier.
+    const SMOOTHING = 0.12;
+    // Stop the rAF loop when not in view AND the dots have settled within this delta.
+    const SETTLE_EPSILON = 0.0005;
 
-    const tick = () => {
-      rafId = null;
+    const computeTargetProgress = (): number => {
       const rect = section.getBoundingClientRect();
       const windowHeight = window.innerHeight;
-      if (rect.bottom < -100 || rect.top > windowHeight + 100) return;
-
       const viewportCenter = windowHeight / 2;
       const sectionY = viewportCenter - rect.top;
       const svgY = (sectionY / rect.height) * SERVICES_VIEWBOX_H;
       const clampedY = Math.min(Math.max(svgY, yToLength[0].y), yToLength[yToLength.length - 1].y);
-
       const len = lengthAtY(clampedY);
-      const progress = len / totalLength;
+      return len / totalLength;
+    };
 
-      const dashOffset = `${totalLength - len}`;
-      path.style.strokeDashoffset = dashOffset;
+    const applyProgress = (progress: number) => {
+      const len = progress * totalLength;
+      path.style.strokeDashoffset = `${totalLength - len}`;
 
       const pt = path.getPointAtLength(len);
       if (dot) {
         dot.setAttribute("cx", `${pt.x}`);
         dot.setAttribute("cy", `${pt.y}`);
         dot.style.opacity = "1";
+      }
+
+      if (path2 && totalLength2 > 0) {
+        const len2 = progress * totalLength2;
+        path2.style.strokeDashoffset = `${totalLength2 - len2}`;
+        if (dot2) {
+          const pt2 = path2.getPointAtLength(len2);
+          dot2.setAttribute("cx", `${pt2.x}`);
+          dot2.setAttribute("cy", `${pt2.y}`);
+          dot2.style.opacity = "1";
+        }
       }
 
       const semiDryLeadPct = 2.5;
@@ -132,35 +179,66 @@ export default function ServicesDecorLayers({
       const curedEdge = Math.min(Math.max(dotPct - curedTrailPct, 0), 100);
       const dryQ = Math.round(dryEdge * 4) / 4;
       const curedQ = Math.round(curedEdge * 4) / 4;
-      const semiDryMask = `linear-gradient(to bottom, black ${dryQ}%, transparent ${dryQ + 4}%)`;
-      if (semiDryMask !== lastSemiMask) {
-        lastSemiMask = semiDryMask;
-        semiDryLayer.style.maskImage = semiDryMask;
-        semiDryLayer.style.webkitMaskImage = semiDryMask;
+      if (semiDryLayer) {
+        const semiDryMask = `linear-gradient(to bottom, black ${dryQ}%, transparent ${dryQ + 4}%)`;
+        if (semiDryMask !== lastSemiMask) {
+          lastSemiMask = semiDryMask;
+          semiDryLayer.style.maskImage = semiDryMask;
+          semiDryLayer.style.webkitMaskImage = semiDryMask;
+        }
       }
-      const curedMask = `linear-gradient(to bottom, black ${curedQ}%, transparent ${curedQ + 4}%)`;
-      if (curedMask !== lastCuredMask) {
-        lastCuredMask = curedMask;
-        curedLayer.style.maskImage = curedMask;
-        curedLayer.style.webkitMaskImage = curedMask;
+      if (curedLayer) {
+        const curedMask = `linear-gradient(to bottom, black ${curedQ}%, transparent ${curedQ + 4}%)`;
+        if (curedMask !== lastCuredMask) {
+          lastCuredMask = curedMask;
+          curedLayer.style.maskImage = curedMask;
+          curedLayer.style.webkitMaskImage = curedMask;
+        }
       }
     };
 
-    const scheduleTick = () => {
-      if (rafId != null) return;
-      rafId = window.requestAnimationFrame(tick);
+    const isInView = (): boolean => {
+      const rect = section.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      return rect.bottom > -100 && rect.top < windowHeight + 100;
     };
 
-    window.addEventListener("scroll", scheduleTick, { passive: true });
-    window.addEventListener("resize", scheduleTick, { passive: true });
-    tick();
+    const loop = () => {
+      const inView = isInView();
+      if (inView) {
+        targetProgress = computeTargetProgress();
+      }
+      currentProgress += (targetProgress - currentProgress) * SMOOTHING;
+      applyProgress(currentProgress);
+
+      const settling = Math.abs(targetProgress - currentProgress) > SETTLE_EPSILON;
+      if (inView || settling) {
+        rafId = window.requestAnimationFrame(loop);
+      } else {
+        rafId = null;
+      }
+    };
+
+    const ensureLoop = () => {
+      if (rafId == null) {
+        rafId = window.requestAnimationFrame(loop);
+      }
+    };
+
+    targetProgress = computeTargetProgress();
+    currentProgress = targetProgress;
+    applyProgress(currentProgress);
+    ensureLoop();
+
+    window.addEventListener("scroll", ensureLoop, { passive: true });
+    window.addEventListener("resize", ensureLoop, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", scheduleTick);
-      window.removeEventListener("resize", scheduleTick);
+      window.removeEventListener("scroll", ensureLoop);
+      window.removeEventListener("resize", ensureLoop);
       if (rafId != null) window.cancelAnimationFrame(rafId);
     };
-  }, [hideOrangeScrollGuide, scrollRootRef]);
+  }, [hideOrangeScrollGuide, hideConcreteLayers, scrollRootRef]);
 
   const wetColumns = [0, 1, 2, 3].map((col) => buildColumnStack(WET_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
   const semiDryColumns = [0, 1, 2, 3].map((col) => buildColumnStack(SEMI_DRY_PHOTOS, col, CONCRETE_TILES_PER_COLUMN));
@@ -168,91 +246,97 @@ export default function ServicesDecorLayers({
 
   return (
     <>
-      <div
-        className={`absolute inset-0 ${vis} pointer-events-none overflow-hidden`}
-        aria-hidden="true"
-        style={{ zIndex: 0 }}
-      >
-        <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
-          {wetColumns.map((stack, colIdx) => (
-            <div key={colIdx} className="w-1/4 flex-shrink-0">
-              {stack.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt=""
-                  className="w-full block"
-                  loading={imgLoading}
-                  decoding={imgDecoding}
-                  draggable={false}
-                />
+      {!hideConcreteLayers ? (
+        <>
+          <div
+            className={`absolute inset-0 ${vis} pointer-events-none overflow-hidden`}
+            aria-hidden="true"
+            style={{ zIndex: 0 }}
+          >
+            <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
+              {wetColumns.map((stack, colIdx) => (
+                <div key={colIdx} className="w-1/4 flex-shrink-0">
+                  {stack.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt=""
+                      className="w-full block"
+                      loading={imgLoading}
+                      decoding={imgDecoding}
+                      draggable={false}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      <div
-        ref={semiDryRef}
-        className={`absolute inset-0 ${vis} pointer-events-none overflow-hidden`}
-        aria-hidden="true"
-        style={{
-          zIndex: 0,
-          maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
-        }}
-      >
-        <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
-          {semiDryColumns.map((stack, colIdx) => (
-            <div key={colIdx} className="w-1/4 flex-shrink-0">
-              {stack.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt=""
-                  className="w-full block"
-                  loading={imgLoading}
-                  decoding={imgDecoding}
-                  draggable={false}
-                />
+          <div
+            ref={semiDryRef}
+            className={`absolute inset-0 ${vis} pointer-events-none overflow-hidden`}
+            aria-hidden="true"
+            style={{
+              zIndex: 0,
+              maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
+              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
+            }}
+          >
+            <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
+              {semiDryColumns.map((stack, colIdx) => (
+                <div key={colIdx} className="w-1/4 flex-shrink-0">
+                  {stack.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt=""
+                      className="w-full block"
+                      loading={imgLoading}
+                      decoding={imgDecoding}
+                      draggable={false}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      <div
-        ref={curedRef}
-        className={`absolute inset-0 ${vis} pointer-events-none overflow-hidden`}
-        aria-hidden="true"
-        style={{
-          zIndex: 0,
-          filter: "brightness(0.95)",
-          maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
-        }}
-      >
-        <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
-          {curedColumns.map((stack, colIdx) => (
-            <div key={colIdx} className="w-1/4 flex-shrink-0">
-              {stack.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt=""
-                  className="w-full block"
-                  loading={imgLoading}
-                  decoding={imgDecoding}
-                  draggable={false}
-                />
+          <div
+            ref={curedRef}
+            className={`absolute inset-0 ${vis} pointer-events-none overflow-hidden`}
+            aria-hidden="true"
+            style={{
+              zIndex: 0,
+              filter: "brightness(0.95)",
+              maskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
+              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 0%)",
+            }}
+          >
+            <div className="flex w-full h-full" style={{ fontSize: 0, lineHeight: 0 }}>
+              {curedColumns.map((stack, colIdx) => (
+                <div key={colIdx} className="w-1/4 flex-shrink-0">
+                  {stack.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt=""
+                      className="w-full block"
+                      loading={imgLoading}
+                      decoding={imgDecoding}
+                      draggable={false}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      ) : null}
 
       <svg
-        className={`absolute inset-0 w-full h-full pointer-events-none ${vis}`}
+        className={`absolute inset-0 w-full h-full pointer-events-none ${
+          hideConcreteLayers ? "opacity-100" : vis
+        }`}
         viewBox={`0 0 ${SERVICES_VIEWBOX_W} ${SERVICES_VIEWBOX_H}`}
         preserveAspectRatio="none"
         fill="none"
@@ -269,7 +353,18 @@ export default function ServicesDecorLayers({
           opacity="0.25"
           visibility={hideOrangeScrollGuide ? "hidden" : "visible"}
         />
+        <path
+          ref={path2Ref}
+          d={SERVICES_SNAKE_D_2}
+          stroke="#F47B20"
+          strokeWidth="4"
+          strokeDasharray="14 10"
+          strokeLinecap="round"
+          opacity="0.25"
+          visibility={hideOrangeScrollGuide ? "hidden" : "visible"}
+        />
         {!hideOrangeScrollGuide ? <circle ref={dotRef} r="10" fill="#F47B20" opacity="0" /> : null}
+        {!hideOrangeScrollGuide ? <circle ref={dot2Ref} r="10" fill="#F47B20" opacity="0" /> : null}
       </svg>
     </>
   );
